@@ -5,7 +5,12 @@ import { PrismaService } from './shared/prisma/prisma.service';
 export class AppController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Get()
+  @Get('healthz')
+  healthz() {
+    return { ok: true };
+  }
+
+  @Get('db-health')
   async dbHealth() {
     await this.prisma.$queryRaw`SELECT 1`;
     return { ok: true, database: 'connected' };

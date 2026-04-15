@@ -16,7 +16,7 @@ services:
       pnpm prisma migrate deploy
       pnpm start:prod
     autoDeploy: true
-    healthCheckPath: /
+    healthCheckPath: /api/healthz
     envVars:
       - key: DATABASE_URL
         fromDatabase:
