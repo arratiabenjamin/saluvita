@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum RoleCode {
+  PATIENT
+  CAREGIVER
+  ADMIN
+}
+
+enum DocumentType {
+  RUT
+  DNI
+  PASSPORT
+  OTHER
+}
+
+enum AppointmentStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id          String      @id @default(uuid())
+  email       String
+  passwordHash String
+  firstName   String
+  lastName    String
+  status      UserStatus  @default(ACTIVE)
+  lastLoginAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  // relations
+  patientProfile        Patient?            @relation("patient_user")
+  createdPatients       Patient[]           @relation("patients_created_by")
+  updatedPatients       Patient[]           @relation("patients_updated_by")
+  guardianLinks         PatientGuardian[]   @relation("patient_guardian_user")
+  createdGuardianLinks  PatientGuardian[]   @relation("patient_guardian_created_by")
+  recordedAppointments  Appointment[]       @relation("appointments_recorded_by")
+  uploadedAttachments   AppointmentAttachment[]
+  refreshTokens         RefreshToken[]
+  userRoles             UserRole[]
+
+  @@unique([email])
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  code        RoleCode  @unique
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model Patient {
+  id                     String        @id @default(uuid())
+  userId                 String?       @unique
+  documentType           DocumentType
+  documentNumber         String
+  firstName              String
+  lastName               String
+  birthDate              DateTime?
+  email                  String?
+  phone                  String?
+  addressLine            String?
+  emergencyContactName   String?
+  emergencyContactPhone  String?
+  notes                  String?
+  isActive               Boolean       @default(true)
+  createdByUserId        String?
+  updatedByUserId        String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  deletedAt              DateTime?
+
+  user        User? @relation("patient_user", fields: [userId], references: [id])
+  createdBy   User? @relation("patients_created_by", fields: [createdByUserId], references: [id])
+  updatedBy   User? @relation("patients_updated_by", fields: [updatedByUserId], references: [id])
+
+  guardians    PatientGuardian[]
+  appointments Appointment[]
+
+  @@unique([documentType, documentNumber])
+  @@index([lastName, firstName])
+  @@index([documentNumber])
+  @@map("patients")
+}
+
+model PatientGuardian {
+  id                    String   @id @default(uuid())
+  patientId             String
+  guardianUserId        String
+  relationship          String?
+  canEditProfile        Boolean  @default(true)
+  canManageAppointments Boolean  @default(true)
+  isActive              Boolean  @default(true)
+  createdByUserId       String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  patient      Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  guardianUser User    @relation("patient_guardian_user", fields: [guardianUserId], references: [id], onDelete: Cascade)
+  createdBy    User    @relation("patient_guardian_created_by", fields: [createdByUserId], references: [id])
+
+  @@unique([patientId, guardianUserId, isActive])
+  @@index([guardianUserId])
+  @@map("patient_guardians")
+}
+
+model Appointment {
+  id               String            @id @default(uuid())
+  patientId        String
+  recordedByUserId String
+  startsAt         DateTime
+  endsAt           DateTime?
+  status           AppointmentStatus @default(PLANNED)
+  reason           String?
+  facilityName     String?
+  facilityAddress  String?
+  doctorName       String?
+  specialty        String?
+  wasAttended      Boolean?
+  diagnosis        String?
+  conclusion       String?
+  followUpNotes    String?
+  cancelledReason  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  patient          Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedByUser   User    @relation("appointments_recorded_by", fields: [recordedByUserId], references: [id])
+  attachments      AppointmentAttachment[]
+
+  @@index([patientId, startsAt(sort: Desc)])
+  @@index([status, startsAt])
+  @@index([recordedByUserId])
+  @@map("appointments")
+}
+
+model AppointmentAttachment {
+  id               String   @id @default(uuid())
+  appointmentId    String
+  uploadedByUserId String
+  fileName         String
+  fileUrl          String
+  mimeType         String
+  fileSizeBytes    BigInt?
+  createdAt        DateTime @default(now())
+
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  uploadedByUser User        @relation(fields: [uploadedByUserId], references: [id])
+
+  @@index([appointmentId, createdAt(sort: Desc)])
+  @@map("appointment_attachments")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  tokenHash   String
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  userAgent   String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
