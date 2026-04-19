@@ -32,6 +32,24 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum ReminderType {
+  GENERAL
+  MEDICATION
+  EXAM
+}
+
+enum ReminderFrequencyUnit {
+  HOURS
+  DAYS
+  WEEKS
+}
+
+enum ReminderLogStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+}
+
 model User {
   id          String      @id @default(uuid())
   email       String
@@ -52,6 +70,9 @@ model User {
   createdGuardianLinks  PatientGuardian[]   @relation("patient_guardian_created_by")
   recordedAppointments  Appointment[]       @relation("appointments_recorded_by")
   uploadedAttachments   AppointmentAttachment[]
+  createdReminders      Reminder[]          @relation("reminders_created_by")
+  updatedReminders      Reminder[]          @relation("reminders_updated_by")
+  createdReminderLogs   ReminderLog[]       @relation("reminder_logs_created_by")
   refreshTokens         RefreshToken[]
   userRoles             UserRole[]
 
@@ -95,6 +116,7 @@ model Patient {
   birthDate              DateTime?
   email                  String?
   phone                  String?
+  timezone               String        @default("America/Santiago")
   addressLine            String?
   emergencyContactName   String?
   emergencyContactPhone  String?
@@ -112,6 +134,8 @@ model Patient {
 
   guardians    PatientGuardian[]
   appointments Appointment[]
+  reminders    Reminder[]
+  reminderLogs ReminderLog[]
 
   @@unique([documentType, documentNumber])
   @@index([lastName, firstName])
@@ -202,4 +226,56 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model Reminder {
+  id                String                @id @default(uuid())
+  patientId         String
+  createdByUserId   String
+  updatedByUserId   String?
+  type              ReminderType
+  name              String
+  timeOfDay         String
+  dosageAmount      String?
+  frequencyEvery    Int
+  frequencyUnit     ReminderFrequencyUnit
+  startsOn          DateTime
+  untilOn           DateTime?
+  notes             String?
+  isActive          Boolean               @default(true)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdByUser  User          @relation("reminders_created_by", fields: [createdByUserId], references: [id])
+  updatedByUser  User?         @relation("reminders_updated_by", fields: [updatedByUserId], references: [id])
+  logs           ReminderLog[]
+
+  @@index([patientId, isActive])
+  @@index([patientId, type])
+  @@index([patientId, startsOn, untilOn])
+  @@map("reminders")
+}
+
+model ReminderLog {
+  id              String            @id @default(uuid())
+  reminderId      String
+  patientId       String
+  scheduledFor    DateTime
+  status          ReminderLogStatus @default(PENDING)
+  completedAt     DateTime?
+  skipReason      String?
+  createdByUserId String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  reminder      Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("reminder_logs_created_by", fields: [createdByUserId], references: [id])
+
+  @@unique([reminderId, scheduledFor])
+  @@index([patientId, scheduledFor(sort: Desc)])
+  @@index([reminderId, scheduledFor(sort: Desc)])
+  @@index([status, scheduledFor])
+  @@map("reminder_logs")
 }

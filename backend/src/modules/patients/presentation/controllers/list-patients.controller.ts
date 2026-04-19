@@ -7,13 +7,31 @@ import { JwtAuthGuard } from "../../../../shared/auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../../../shared/auth/guards/roles.guard";
 import { Roles } from "../../../../shared/auth/decorators/roles.decorator";
 import { ROLE_ADMIN, ROLE_CAREGIVER, ROLE_PATIENT } from "../../../../shared/auth/roles.constants";
+import {
+    ApiBearerAuth,
+    ApiForbiddenResponse,
+    ApiOkResponse,
+    ApiOperation,
+    ApiQuery,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(ROLE_ADMIN, ROLE_CAREGIVER, ROLE_PATIENT)
+@ApiTags('Patients')
+@ApiBearerAuth('access-token')
 @Controller('/v1/patients')
 export class ListPatientsController {
     constructor(private readonly useCase: ListPatientsUseCase) {}
 
+    @ApiOperation({ summary: 'Listar pacientes' })
+    @ApiQuery({ name: 'page', required: false, example: 1 })
+    @ApiQuery({ name: 'limit', required: false, example: 20 })
+    @ApiQuery({ name: 'search', required: false, example: 'Maria' })
+    @ApiOkResponse({ description: 'Listado de pacientes paginado' })
+    @ApiUnauthorizedResponse({ description: 'Token inválido o faltante' })
+    @ApiForbiddenResponse({ description: 'Usuario sin patientId en rol PATIENT' })
     @Get()
     async handle(
         @Query() query: ListPatientsQueryDto,

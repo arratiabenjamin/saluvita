@@ -7,13 +7,28 @@ import { JwtAuthGuard } from "../../../../shared/auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../../../shared/auth/guards/roles.guard";
 import { Roles } from "../../../../shared/auth/decorators/roles.decorator";
 import { ROLE_ADMIN, ROLE_CAREGIVER, ROLE_PATIENT } from "../../../../shared/auth/roles.constants";
+import {
+    ApiBearerAuth,
+    ApiForbiddenResponse,
+    ApiOkResponse,
+    ApiOperation,
+    ApiParam,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(ROLE_ADMIN, ROLE_CAREGIVER, ROLE_PATIENT)
+@ApiTags('Patients')
+@ApiBearerAuth('access-token')
 @Controller('/v1/patients')
 export class GetPatientByIdController {
     constructor(private readonly useCase: GetPatientByIdUseCase) {}
 
+    @ApiOperation({ summary: 'Obtener mi perfil de paciente' })
+    @ApiOkResponse({ description: 'Perfil de paciente obtenido' })
+    @ApiUnauthorizedResponse({ description: 'Token inválido o faltante' })
+    @ApiForbiddenResponse({ description: 'Usuario sin patientId' })
     @Get('me')
     async me(@CurrentUser() user: AuthenticatedUser) {
         if (!user.patientId) {
@@ -23,6 +38,11 @@ export class GetPatientByIdController {
         return this.handle(user.patientId, user);
     }
 
+    @ApiOperation({ summary: 'Obtener paciente por id' })
+    @ApiParam({ name: 'id', example: '01b2e879-9938-4a29-b01b-aab96eb2ede6' })
+    @ApiOkResponse({ description: 'Paciente obtenido' })
+    @ApiUnauthorizedResponse({ description: 'Token inválido o faltante' })
+    @ApiForbiddenResponse({ description: 'Acceso denegado por ownership/rol' })
     @Get(':id')
     async handle(
         @Param('id') id: string,

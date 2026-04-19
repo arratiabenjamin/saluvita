@@ -16,11 +16,23 @@ import { LogoutDto } from './dto/logout.dto';
 import { JwtAuthGuard } from '../../shared/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../shared/auth/interfaces/authenticated-user.interface';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('/v1/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiOperation({ summary: 'Registrar paciente' })
+  @ApiBody({ type: RegisterPatientDto })
+  @ApiOkResponse({ description: 'Usuario registrado correctamente' })
   @Post('register')
   async register(@Body() dto: RegisterPatientDto, @Req() req: any) {
     return {
@@ -32,6 +44,10 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Iniciar sesión' })
+  @ApiBody({ type: LoginDto })
+  @ApiOkResponse({ description: 'Login exitoso' })
+  @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() req: any) {
@@ -40,6 +56,10 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Renovar access token con refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiOkResponse({ description: 'Token renovado correctamente' })
+  @ApiUnauthorizedResponse({ description: 'Refresh token inválido' })
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   async refresh(@Body() dto: RefreshTokenDto, @Req() req: any) {
@@ -48,6 +68,9 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Cerrar sesión (revocar refresh token)' })
+  @ApiBody({ type: LogoutDto })
+  @ApiOkResponse({ description: 'Sesión cerrada' })
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   async logout(@Body() dto: LogoutDto) {
@@ -56,6 +79,10 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Obtener usuario autenticado actual' })
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({ description: 'Perfil autenticado' })
+  @ApiUnauthorizedResponse({ description: 'Token inválido o expirado' })
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@CurrentUser() user: AuthenticatedUser) {
