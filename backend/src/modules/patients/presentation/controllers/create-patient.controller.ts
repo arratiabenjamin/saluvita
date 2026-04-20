@@ -7,13 +7,29 @@ import { JwtAuthGuard } from "../../../../shared/auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../../../shared/auth/guards/roles.guard";
 import { Roles } from "../../../../shared/auth/decorators/roles.decorator";
 import { ROLE_ADMIN, ROLE_CAREGIVER } from "../../../../shared/auth/roles.constants";
+import {
+    ApiBearerAuth,
+    ApiBody,
+    ApiCreatedResponse,
+    ApiForbiddenResponse,
+    ApiOperation,
+    ApiTags,
+    ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(ROLE_ADMIN, ROLE_CAREGIVER)
+@ApiTags('Patients')
+@ApiBearerAuth('access-token')
 @Controller('/v1/patients')
 export class CreatePatientController {
     constructor(private readonly useCase: CreatePatientUseCase) {}
 
+    @ApiOperation({ summary: 'Crear paciente' })
+    @ApiBody({ type: CreatePatientDto })
+    @ApiCreatedResponse({ description: 'Paciente creado correctamente' })
+    @ApiUnauthorizedResponse({ description: 'Token inválido o faltante' })
+    @ApiForbiddenResponse({ description: 'Rol insuficiente' })
     @Post()
     async handle(
         @Body() dto: CreatePatientDto,

@@ -32,3 +32,5 @@ backend/prisma/dev.db-journal
 
 #Docs
 docs/informes/
+# TypeScript incremental build
+*.tsbuildinfo
