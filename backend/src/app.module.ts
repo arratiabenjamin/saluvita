@@ -10,6 +10,9 @@ import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { CaregivingModule } from './modules/caregiving/caregiving.module';
+import { MedicalHistoryModule } from './modules/medical-history/medical-history.module';
 
 @Module({
   imports: [
@@ -17,9 +20,12 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
       isGlobal: true,
     }),
     PrismaModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     PatientsModule,
+    CaregivingModule,
+    MedicalHistoryModule,
     AppointmentsModule,
     RemindersModule,
     SchedulesModule,

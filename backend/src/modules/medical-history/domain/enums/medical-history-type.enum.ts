@@ -1,0 +1,9 @@
+export enum MedicalHistoryTypeEnum {
+    DIAGNOSIS = 'DIAGNOSIS',
+    CONCLUSION = 'CONCLUSION',
+    FOLLOW_UP = 'FOLLOW_UP',
+    PATIENT_NOTE = 'PATIENT_NOTE',
+    EXAM = 'EXAM',
+    PRESCRIPTION = 'PRESCRIPTION',
+    OTHER = 'OTHER',
+}

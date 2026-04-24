@@ -3,6 +3,7 @@ import { CompleteAppointmentCommand } from "../commands/complete-appointment.com
 import { ActorContext } from "../ports/actor-context";
 import type { AppointmentRepository } from "../ports/appointment.repository";
 import type { AppointmentAccessService } from "../ports/appointment-access.service";
+import { CreateEntriesFromAppointmentUseCase } from "../../../medical-history/application/use-cases/create-entries-from-appointment.use-case";
 
 @Injectable()
 export class CompleteAppointmentUseCase {
@@ -11,6 +12,7 @@ export class CompleteAppointmentUseCase {
         private readonly appointmentRepository: AppointmentRepository,
         @Inject('AppointmentAccessService')
         private readonly appointmentAccessService: AppointmentAccessService,
+        private readonly createEntriesFromAppointment: CreateEntriesFromAppointmentUseCase,
     ) {}
 
     async execute(command: CompleteAppointmentCommand, actor: ActorContext) {
@@ -28,6 +30,17 @@ export class CompleteAppointmentUseCase {
         });
 
         await this.appointmentRepository.update(appointment);
+
+        await this.createEntriesFromAppointment.execute({
+            id: appointment.id,
+            patientId: appointment.patientId,
+            startsAt: appointment.startsAt,
+            endsAt: appointment.endsAt,
+            diagnosis: appointment.diagnosis,
+            conclusion: appointment.conclusion,
+            followUpNotes: appointment.followUpNotes,
+        }, actor.userId);
+
         return { id: appointment.id };
     }
 }
