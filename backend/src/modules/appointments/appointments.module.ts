@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { PrismaModule } from "../../shared/prisma/prisma.module";
 import { AuthModule } from "../auth/auth.module";
+import { MedicalHistoryModule } from "../medical-history/medical-history.module";
 import { CreateAppointmentController } from "./presentation/controllers/create-appointment.controller";
 import { GetAppointmentByIdController } from "./presentation/controllers/get-appointment-by-id.controller";
 import { ListAppointmentsController } from "./presentation/controllers/list-appointments.controller";
@@ -18,7 +19,7 @@ import { PrismaAppointmentQueryService } from "./infrastructure/queries/prisma-a
 import { PrismaAppointmentAccessService } from "./infrastructure/access/prisma-appointment-access.service";
 
 @Module({
-    imports: [PrismaModule, AuthModule],
+    imports: [PrismaModule, AuthModule, MedicalHistoryModule],
     controllers: [
         CreateAppointmentController,
         GetAppointmentByIdController,

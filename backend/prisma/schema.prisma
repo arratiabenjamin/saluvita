@@ -50,6 +50,21 @@ enum ReminderLogStatus {
   SKIPPED
 }
 
+enum MedicalHistorySource {
+  APPOINTMENT
+  MANUAL
+}
+
+enum MedicalHistoryType {
+  DIAGNOSIS
+  CONCLUSION
+  FOLLOW_UP
+  PATIENT_NOTE
+  EXAM
+  PRESCRIPTION
+  OTHER
+}
+
 model User {
   id          String      @id @default(uuid())
   email       String
@@ -63,18 +78,21 @@ model User {
   deletedAt   DateTime?
 
   // relations
-  patientProfile        Patient?            @relation("patient_user")
-  createdPatients       Patient[]           @relation("patients_created_by")
-  updatedPatients       Patient[]           @relation("patients_updated_by")
-  guardianLinks         PatientGuardian[]   @relation("patient_guardian_user")
-  createdGuardianLinks  PatientGuardian[]   @relation("patient_guardian_created_by")
-  recordedAppointments  Appointment[]       @relation("appointments_recorded_by")
-  uploadedAttachments   AppointmentAttachment[]
-  createdReminders      Reminder[]          @relation("reminders_created_by")
-  updatedReminders      Reminder[]          @relation("reminders_updated_by")
-  createdReminderLogs   ReminderLog[]       @relation("reminder_logs_created_by")
-  refreshTokens         RefreshToken[]
-  userRoles             UserRole[]
+  patientProfile                   Patient?                   @relation("patient_user")
+  createdPatients                  Patient[]                  @relation("patients_created_by")
+  updatedPatients                  Patient[]                  @relation("patients_updated_by")
+  guardianLinks                    PatientGuardian[]          @relation("patient_guardian_user")
+  createdGuardianLinks             PatientGuardian[]          @relation("patient_guardian_created_by")
+  recordedAppointments             Appointment[]              @relation("appointments_recorded_by")
+  uploadedAttachments              AppointmentAttachment[]
+  createdReminders                 Reminder[]                 @relation("reminders_created_by")
+  updatedReminders                 Reminder[]                 @relation("reminders_updated_by")
+  createdReminderLogs              ReminderLog[]              @relation("reminder_logs_created_by")
+  createdMedicalHistoryEntries     MedicalHistoryEntry[]      @relation("medical_history_entries_created_by")
+  updatedMedicalHistoryEntries     MedicalHistoryEntry[]      @relation("medical_history_entries_updated_by")
+  uploadedMedicalHistoryAttachments MedicalHistoryAttachment[] @relation("medical_history_attachments_uploaded_by")
+  refreshTokens                    RefreshToken[]
+  userRoles                        UserRole[]
 
   @@unique([email])
   @@index([status])
@@ -132,10 +150,11 @@ model Patient {
   createdBy   User? @relation("patients_created_by", fields: [createdByUserId], references: [id])
   updatedBy   User? @relation("patients_updated_by", fields: [updatedByUserId], references: [id])
 
-  guardians    PatientGuardian[]
-  appointments Appointment[]
-  reminders    Reminder[]
-  reminderLogs ReminderLog[]
+  guardians             PatientGuardian[]
+  appointments          Appointment[]
+  reminders             Reminder[]
+  reminderLogs          ReminderLog[]
+  medicalHistoryEntries MedicalHistoryEntry[]
 
   @@unique([documentType, documentNumber])
   @@index([lastName, firstName])
@@ -144,16 +163,22 @@ model Patient {
 }
 
 model PatientGuardian {
-  id                    String   @id @default(uuid())
+  id                    String    @id @default(uuid())
   patientId             String
   guardianUserId        String
   relationship          String?
-  canEditProfile        Boolean  @default(true)
-  canManageAppointments Boolean  @default(true)
-  isActive              Boolean  @default(true)
+  canEditProfile        Boolean   @default(true)
+  canManageAppointments Boolean   @default(true)
+  isActive              Boolean   @default(true)
   createdByUserId       String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  invitationToken       String?   @unique
+  invitationExpiresAt   DateTime?
+  invitedAt             DateTime?
+  acceptedAt            DateTime?
+  rejectedAt            DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   patient      Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   guardianUser User    @relation("patient_guardian_user", fields: [guardianUserId], references: [id], onDelete: Cascade)
@@ -161,6 +186,7 @@ model PatientGuardian {
 
   @@unique([patientId, guardianUserId, isActive])
   @@index([guardianUserId])
+  @@index([patientId, isActive])
   @@map("patient_guardians")
 }
 
@@ -184,9 +210,10 @@ model Appointment {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  patient          Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  recordedByUser   User    @relation("appointments_recorded_by", fields: [recordedByUserId], references: [id])
-  attachments      AppointmentAttachment[]
+  patient               Patient                 @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedByUser        User                    @relation("appointments_recorded_by", fields: [recordedByUserId], references: [id])
+  attachments           AppointmentAttachment[]
+  medicalHistoryEntries MedicalHistoryEntry[]
 
   @@index([patientId, startsAt(sort: Desc)])
   @@index([status, startsAt])
@@ -278,4 +305,49 @@ model ReminderLog {
   @@index([reminderId, scheduledFor(sort: Desc)])
   @@index([status, scheduledFor])
   @@map("reminder_logs")
+}
+
+model MedicalHistoryEntry {
+  id              String               @id @default(uuid())
+  patientId       String
+  source          MedicalHistorySource
+  type            MedicalHistoryType
+  title           String
+  description     String?
+  occurredAt      DateTime
+  appointmentId   String?
+  createdByUserId String
+  updatedByUserId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  patient     Patient                    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment Appointment?               @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdBy   User                       @relation("medical_history_entries_created_by", fields: [createdByUserId], references: [id])
+  updatedBy   User?                      @relation("medical_history_entries_updated_by", fields: [updatedByUserId], references: [id])
+  attachments MedicalHistoryAttachment[]
+
+  @@index([patientId, occurredAt(sort: Desc)])
+  @@index([patientId, source])
+  @@index([patientId, type])
+  @@index([appointmentId])
+  @@map("medical_history_entries")
+}
+
+model MedicalHistoryAttachment {
+  id               String   @id @default(uuid())
+  entryId          String
+  fileName         String
+  fileMimeType     String
+  fileSizeBytes    Int
+  s3Bucket         String
+  s3Key            String   @unique
+  uploadedByUserId String
+  createdAt        DateTime @default(now())
+
+  entry      MedicalHistoryEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  uploadedBy User                @relation("medical_history_attachments_uploaded_by", fields: [uploadedByUserId], references: [id])
+
+  @@index([entryId])
+  @@map("medical_history_attachments")
 }
