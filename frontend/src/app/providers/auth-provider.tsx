@@ -24,10 +24,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const bootstrap = async () => {
-      const accessToken = getStoredAccessToken();
-      const refreshToken = getStoredRefreshToken();
+      const initialAccessToken = getStoredAccessToken();
+      const initialRefreshToken = getStoredRefreshToken();
 
-      if (!accessToken && !refreshToken) {
+      if (!initialAccessToken && !initialRefreshToken) {
         setSession(null);
         setIsInitializing(false);
         return;
@@ -35,12 +35,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         const user = await authApi.me();
-        setSession({
-          accessToken,
-          refreshToken,
-          user,
-        });
-        setAuthSession({ accessToken, refreshToken, user });
+
+        if (!user) {
+          clearAuthSession();
+          setSession(null);
+          return;
+        }
+
+        const accessToken = getStoredAccessToken();
+        const refreshToken = getStoredRefreshToken();
+
+        if (!accessToken) {
+          clearAuthSession();
+          setSession(null);
+          return;
+        }
+
+        const nextSession: AuthSession = { accessToken, refreshToken, user };
+        setSession(nextSession);
+        setAuthSession(nextSession);
       } catch {
         clearAuthSession();
         setSession(null);
