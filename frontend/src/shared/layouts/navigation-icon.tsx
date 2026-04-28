@@ -45,16 +45,6 @@ export function NavigationIcon({ name, className }: NavigationIconProps) {
     );
   }
 
-  if (name === 'facilities') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-        <path d="M3 21h18" />
-        <path d="M5 21V7l7-4 7 4v14" />
-        <path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01M11 21v-4h2v4" />
-      </svg>
-    );
-  }
-
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
       <circle cx="12" cy="12" r="9" />

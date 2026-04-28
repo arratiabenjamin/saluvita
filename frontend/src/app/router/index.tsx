@@ -1,10 +1,13 @@
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { ProtectedRoute } from '@/app/router/protected-route';
 import { LoginPage } from '@/modules/auth/pages/login-page';
+import { AppointmentsPage } from '@/modules/appointments/pages/appointments-page';
+import { FacilitiesPage } from '@/modules/facilities/pages/facilities-page';
 import { ModulePlaceholderPage } from '@/modules/common/pages/module-placeholder-page';
 import { DashboardPage } from '@/modules/dashboard/pages/dashboard-page';
 import { PatientsPage } from '@/modules/patients/pages/patients-page';
 import { NewPatientPage } from '@/modules/patients/pages/new-patient-page';
+import { ProfessionalsPage } from '@/modules/professionals/pages/professionals-page';
 import { SchedulesPage } from '@/modules/schedules/pages/schedules-page';
 import { routes } from '@/shared/constants/routes';
 
@@ -34,30 +37,15 @@ const router = createBrowserRouter([
       },
       {
         path: routes.appointments,
-        element: (
-          <ModulePlaceholderPage
-            title="Citas"
-            description="Dejamos este espacio listo dentro del layout principal para incorporar la gestion de agenda medica en la siguiente etapa."
-          />
-        ),
+        element: <AppointmentsPage />,
       },
       {
         path: routes.professionals,
-        element: (
-          <ModulePlaceholderPage
-            title="Profesionales"
-            description="Aqui creceremos con el modulo de profesionales manteniendo la misma experiencia simple y ordenada."
-          />
-        ),
+        element: <ProfessionalsPage />,
       },
       {
         path: routes.facilities,
-        element: (
-          <ModulePlaceholderPage
-            title="Centros"
-            description="Esta vista sirve como punto de entrada para futuras sedes, clinicas y lugares de atencion."
-          />
-        ),
+        element: <FacilitiesPage />,
       },
       {
         path: routes.schedules,

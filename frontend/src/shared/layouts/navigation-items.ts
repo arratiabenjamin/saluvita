@@ -5,7 +5,6 @@ export type NavigationIconName =
   | 'patients'
   | 'appointments'
   | 'professionals'
-  | 'facilities'
   | 'schedules';
 
 export const appNavigation = [
@@ -13,6 +12,5 @@ export const appNavigation = [
   { to: routes.patients, label: 'Pacientes', icon: 'patients' },
   { to: routes.appointments, label: 'Citas', icon: 'appointments' },
   { to: routes.professionals, label: 'Profesionales', icon: 'professionals' },
-  { to: routes.facilities, label: 'Centros', icon: 'facilities' },
   { to: routes.schedules, label: 'Horarios', icon: 'schedules' },
 ] as const;

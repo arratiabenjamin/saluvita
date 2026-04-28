@@ -1,17 +1,8 @@
 import { ReactNode } from 'react';
 
 export type ScheduleTab = 'today' | 'week' | 'upcoming';
-export type ActivityType =
-  | 'cita'
-  | 'medicamento'
-  | 'examen'
-  | 'recordatorio'
-  | 'seguimiento';
-export type ActivityStatus =
-  | 'confirmada'
-  | 'pendiente'
-  | 'completada'
-  | 'cancelada';
+export type ActivityType = 'medicamento' | 'recordatorio' | 'seguimiento' | 'cuidado';
+export type ActivityStatus = 'confirmada' | 'pendiente' | 'completada' | 'cancelada';
 
 export type HealthEvent = {
   id: string;
@@ -52,7 +43,7 @@ export const healthEvents: HealthEvent[] = [
     dateOrder: 1,
     time: '08:00',
     title: 'Tomar medicacion de la manana',
-    location: 'En casa',
+    location: 'Rutina en casa',
     type: 'medicamento',
     status: 'pendiente',
     actionLabel: 'Marcar tomado',
@@ -63,11 +54,11 @@ export const healthEvents: HealthEvent[] = [
     dayLabel: 'Hoy',
     dateOrder: 1,
     time: '10:30',
-    title: 'Control de cardiologia',
-    location: 'Clinica Central · Piso 2',
-    type: 'cita',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
+    title: 'Vaso de agua y pausa activa',
+    location: 'Recordatorio diario',
+    type: 'recordatorio',
+    status: 'pendiente',
+    actionLabel: 'Posponer',
   },
   {
     id: '3',
@@ -75,23 +66,23 @@ export const healthEvents: HealthEvent[] = [
     dayLabel: 'Hoy',
     dateOrder: 1,
     time: '16:00',
-    title: 'Recordatorio de hidratacion',
-    location: 'Rutina diaria',
-    type: 'recordatorio',
-    status: 'pendiente',
-    actionLabel: 'Posponer',
+    title: 'Control de colacion y descanso',
+    location: 'Rutina personal',
+    type: 'cuidado',
+    status: 'confirmada',
+    actionLabel: 'Ver detalle',
   },
   {
     id: '4',
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
-    time: '18:30',
-    title: 'Revisar indicaciones del examen',
-    location: 'Portal de salud',
-    type: 'examen',
+    time: '21:00',
+    title: 'Preparar pastillero para manana',
+    location: 'Dormitorio',
+    type: 'seguimiento',
     status: 'pendiente',
-    actionLabel: 'Ver indicacion',
+    actionLabel: 'Marcar listo',
   },
   {
     id: '5',
@@ -100,7 +91,7 @@ export const healthEvents: HealthEvent[] = [
     dateOrder: 1,
     time: '08:00',
     title: 'Tomar medicacion de la manana',
-    location: 'En casa',
+    location: 'Rutina en casa',
     type: 'medicamento',
     status: 'pendiente',
     actionLabel: 'Marcar tomado',
@@ -111,42 +102,6 @@ export const healthEvents: HealthEvent[] = [
     dayLabel: 'Martes',
     dateOrder: 2,
     time: '10:30',
-    title: 'Control de cardiologia',
-    location: 'Clinica Central · Piso 2',
-    type: 'cita',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
-  },
-  {
-    id: '7',
-    tab: 'week',
-    dayLabel: 'Miercoles',
-    dateOrder: 3,
-    time: '09:00',
-    title: 'Examen de sangre',
-    location: 'Laboratorio Vida',
-    type: 'examen',
-    status: 'pendiente',
-    actionLabel: 'Preparacion',
-  },
-  {
-    id: '8',
-    tab: 'week',
-    dayLabel: 'Jueves',
-    dateOrder: 4,
-    time: '18:30',
-    title: 'Seguimiento con nutricionista',
-    location: 'Videollamada',
-    type: 'seguimiento',
-    status: 'confirmada',
-    actionLabel: 'Unirse',
-  },
-  {
-    id: '9',
-    tab: 'week',
-    dayLabel: 'Viernes',
-    dateOrder: 5,
-    time: '16:00',
     title: 'Recordatorio de hidratacion',
     location: 'Rutina diaria',
     type: 'recordatorio',
@@ -154,16 +109,52 @@ export const healthEvents: HealthEvent[] = [
     actionLabel: 'Posponer',
   },
   {
+    id: '7',
+    tab: 'week',
+    dayLabel: 'Miercoles',
+    dateOrder: 3,
+    time: '09:00',
+    title: 'Ayuno previo para examen del jueves',
+    location: 'Preparacion en casa',
+    type: 'recordatorio',
+    status: 'confirmada',
+    actionLabel: 'Leer indicacion',
+  },
+  {
+    id: '8',
+    tab: 'week',
+    dayLabel: 'Jueves',
+    dateOrder: 4,
+    time: '18:30',
+    title: 'Caminata suave de 20 minutos',
+    location: 'Barrio o caminadora',
+    type: 'cuidado',
+    status: 'confirmada',
+    actionLabel: 'Registrar avance',
+  },
+  {
+    id: '9',
+    tab: 'week',
+    dayLabel: 'Viernes',
+    dateOrder: 5,
+    time: '20:30',
+    title: 'Revisar horarios del fin de semana',
+    location: 'Agenda personal',
+    type: 'seguimiento',
+    status: 'pendiente',
+    actionLabel: 'Actualizar',
+  },
+  {
     id: '10',
     tab: 'upcoming',
     dayLabel: '02 Jul',
     dateOrder: 10,
-    time: '11:15',
-    title: 'Control de medicina interna',
-    location: 'Centro Medico Norte',
-    type: 'cita',
+    time: '07:30',
+    title: 'Reiniciar rutina de vitaminas',
+    location: 'Cocina',
+    type: 'medicamento',
     status: 'confirmada',
-    actionLabel: 'Ver detalle',
+    actionLabel: 'Ver horario',
   },
   {
     id: '11',
@@ -183,9 +174,9 @@ export const healthEvents: HealthEvent[] = [
     dayLabel: '08 Jul',
     dateOrder: 12,
     time: '12:00',
-    title: 'Entrega de resultados',
-    location: 'Portal de salud',
-    type: 'examen',
+    title: 'Controlar hidratacion en jornada larga',
+    location: 'Rutina fuera de casa',
+    type: 'cuidado',
     status: 'completada',
     actionLabel: 'Revisar',
   },
@@ -194,9 +185,9 @@ export const healthEvents: HealthEvent[] = [
     tab: 'upcoming',
     dayLabel: '12 Jul',
     dateOrder: 13,
-    time: '17:00',
-    title: 'Seguimiento post consulta',
-    location: 'Llamada con enfermeria',
+    time: '21:00',
+    title: 'Preparar horarios de medicamentos',
+    location: 'Agenda personal',
     type: 'seguimiento',
     status: 'pendiente',
     actionLabel: 'Ver detalle',
@@ -207,23 +198,11 @@ export const typeStyles: Record<
   ActivityType,
   { label: string; iconBg: string; iconColor: string; badge: string }
 > = {
-  cita: {
-    label: 'Cita',
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-    badge: 'bg-blue-50 text-blue-600',
-  },
   medicamento: {
     label: 'Medicamento',
     iconBg: 'bg-emerald-100',
     iconColor: 'text-emerald-600',
     badge: 'bg-emerald-50 text-emerald-600',
-  },
-  examen: {
-    label: 'Examen',
-    iconBg: 'bg-violet-100',
-    iconColor: 'text-violet-600',
-    badge: 'bg-violet-50 text-violet-600',
   },
   recordatorio: {
     label: 'Recordatorio',
@@ -233,6 +212,12 @@ export const typeStyles: Record<
   },
   seguimiento: {
     label: 'Seguimiento',
+    iconBg: 'bg-blue-100',
+    iconColor: 'text-blue-600',
+    badge: 'bg-blue-50 text-blue-600',
+  },
+  cuidado: {
+    label: 'Cuidado',
     iconBg: 'bg-rose-100',
     iconColor: 'text-rose-500',
     badge: 'bg-rose-50 text-rose-500',
@@ -247,12 +232,9 @@ export const statusStyles: Record<ActivityStatus, string> = {
 };
 
 export const contextualCopy: Record<ScheduleTab, string> = {
-  today:
-    'Revisa lo importante de tu dia y manten tus compromisos de salud en orden.',
-  week:
-    'Visualiza tu semana con anticipacion y organiza tus actividades medicas con calma.',
-  upcoming:
-    'Consulta lo que viene mas adelante para prepararte con tiempo.',
+  today: 'Revisa tus horarios de hoy y manten tu rutina diaria bajo control.',
+  week: 'Ordena tus cuidados de la semana con recordatorios claros y faciles de seguir.',
+  upcoming: 'Anticipa tus proximos horarios personales para prepararte con tiempo.',
 };
 
 export const summaryConfig: Record<
@@ -261,110 +243,110 @@ export const summaryConfig: Record<
 > = {
   today: [
     {
-      label: 'Citas hoy',
-      value: '2',
-      helper: 'Controles y atenciones del dia.',
-      tone: 'text-blue-600',
+      label: 'Medicamentos hoy',
+      value: '1',
+      helper: 'Tomas principales registradas para el dia.',
+      tone: 'text-emerald-600',
     },
     {
-      label: 'Recordatorio activo',
+      label: 'Recordatorios activos',
       value: '1',
-      helper: 'Avisos para acompanar tu rutina.',
+      helper: 'Avisos para hidratacion y rutina personal.',
       tone: 'text-amber-600',
     },
     {
-      label: 'Examen pendiente',
-      value: '1',
-      helper: 'Preparaciones y controles proximos.',
-      tone: 'text-violet-600',
+      label: 'Cuidados del dia',
+      value: '2',
+      helper: 'Pausas, seguimiento y organizacion personal.',
+      tone: 'text-blue-600',
     },
   ],
   week: [
     {
-      label: 'Actividades esta semana',
+      label: 'Rutinas esta semana',
       value: '5',
-      helper: 'Rutinas y compromisos en agenda.',
+      helper: 'Bloques de cuidado distribuidos por dia.',
       tone: 'text-blue-600',
     },
     {
-      label: 'Controles programados',
-      value: '2',
-      helper: 'Atenciones ya consideradas.',
-      tone: 'text-emerald-600',
+      label: 'Preparaciones previas',
+      value: '1',
+      helper: 'Avisos importantes antes de estudios o controles.',
+      tone: 'text-amber-600',
     },
     {
-      label: 'Seguimiento importante',
-      value: '1',
-      helper: 'Requiere atencion esta semana.',
+      label: 'Seguimientos personales',
+      value: '2',
+      helper: 'Chequeos para mantener constancia en tu rutina.',
       tone: 'text-rose-500',
     },
   ],
   upcoming: [
     {
-      label: 'Actividades proximas',
+      label: 'Horarios proximos',
       value: '4',
-      helper: 'Compromisos que vienen mas adelante.',
+      helper: 'Rutinas personales agendadas para mas adelante.',
       tone: 'text-blue-600',
     },
     {
-      label: 'Cita por confirmar',
+      label: 'Recordatorios previos',
       value: '1',
-      helper: 'Revisa detalles antes de asistir.',
+      helper: 'Preparaciones que conviene dejar visibles.',
       tone: 'text-amber-600',
     },
     {
-      label: 'Recordatorios futuros',
+      label: 'Cuidados planificados',
       value: '2',
-      helper: 'Preparaciones y avisos posteriores.',
-      tone: 'text-violet-600',
+      helper: 'Acciones de autocuidado ya previstas.',
+      tone: 'text-emerald-600',
     },
   ],
 };
 
 export const daySummaryMessages: Record<ScheduleTab, string> = {
-  today: 'Todo listo para tu dia',
-  week: 'Tu semana de salud esta bajo control',
-  upcoming: 'Tienes tiempo para prepararte con calma',
+  today: 'Tu rutina diaria esta clara para hoy',
+  week: 'Tus horarios personales estan organizados para la semana',
+  upcoming: 'Tienes tiempo para preparar tus proximos cuidados',
 };
 
 export const preparationItems: PreparationItem[] = [
   {
-    id: 'medical-order',
-    title: 'Llevar orden medica',
-    helper: 'Ten a mano recetas, derivaciones o examenes previos si aplican.',
+    id: 'medication-box',
+    title: 'Preparar pastillero',
+    helper: 'Deja listas las tomas del dia siguiente para evitar olvidos.',
   },
   {
-    id: 'confirm-address',
-    title: 'Confirmar direccion',
-    helper: 'Revisa la ubicacion del centro y la forma mas simple de llegar.',
+    id: 'water-bottle',
+    title: 'Tener agua a mano',
+    helper: 'Mantener tu botella visible ayuda con la hidratacion.',
   },
   {
-    id: 'arrive-early',
-    title: 'Llegar 10 minutos antes',
-    helper: 'Ese margen te ayuda a registrarte con tranquilidad.',
+    id: 'daily-notes',
+    title: 'Revisar notas personales',
+    helper: 'Anota sintomas, energia o cambios para seguir tu rutina.',
   },
   {
-    id: 'review-instructions',
-    title: 'Revisar indicaciones previas',
-    helper: 'Comprueba si necesitas ayuno, agua o documentos extra.',
+    id: 'alarm-check',
+    title: 'Confirmar alarmas',
+    helper: 'Verifica que tus recordatorios sigan activos en los horarios correctos.',
   },
 ];
 
 export const quickActions: QuickAction[] = [
   {
-    id: 'details',
-    label: 'Ver detalle',
-    helper: 'Consulta lugar, horario y observaciones.',
+    id: 'check-routine',
+    label: 'Ver rutina',
+    helper: 'Consulta el detalle de tus horarios personales.',
   },
   {
-    id: 'reschedule',
-    label: 'Reagendar',
-    helper: 'Ajusta tu compromiso si necesitas otro horario.',
-  },
-  {
-    id: 'ready',
+    id: 'mark-ready',
     label: 'Marcar como listo',
-    helper: 'Confirma que ya preparaste todo para salir.',
+    helper: 'Confirma que ya preparaste lo necesario para hoy.',
+  },
+  {
+    id: 'adjust-alerts',
+    label: 'Ajustar recordatorios',
+    helper: 'Reorganiza alarmas y bloques de cuidado rapidamente.',
   },
 ];
 
@@ -434,30 +416,11 @@ export function getMiniCalendarDays() {
 }
 
 export function EventIcon({ type }: { type: ActivityType }): ReactNode {
-  if (type === 'cita') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-        <path d="M8 2v4M16 2v4M3 10h18" />
-        <rect x="3" y="4" width="18" height="17" rx="3" />
-      </svg>
-    );
-  }
-
   if (type === 'medicamento') {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
         <path d="M8 3h8l2 2-8 8-4-4 8-8Z" />
         <path d="m7 14 3 3-4 4-3-3 4-4Z" />
-      </svg>
-    );
-  }
-
-  if (type === 'examen') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-        <path d="M8 3h8l1 4H7z" />
-        <path d="M8 8h8v13H8z" />
-        <path d="M10 12h4M10 16h4" />
       </svg>
     );
   }
@@ -471,12 +434,19 @@ export function EventIcon({ type }: { type: ActivityType }): ReactNode {
     );
   }
 
+  if (type === 'seguimiento') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+        <path d="M3 12h4l2-4 4 8 2-4h6" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-      <path d="M12 14v7M8.5 17.5h7" />
-      <path d="M10 3h4l1 4H9z" />
-      <path d="M6 21v-2a6 6 0 0 1 12 0v2" />
-      <circle cx="12" cy="9" r="3" />
+      <path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+      <path d="M19 7h2M20 6v2" />
     </svg>
   );
 }
