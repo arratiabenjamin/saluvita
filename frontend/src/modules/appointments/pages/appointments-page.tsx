@@ -1,5 +1,6 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import {
@@ -11,13 +12,14 @@ import {
   getGroupedTodayEvents,
   getGroupedWeekEvents,
   getMiniCalendarDays,
+  getMedicalInstructions,
   getNextEvent,
-  medicalInstructions,
   medicalInstructionStatusStyles,
   MedicalInstruction,
   MedicalInstructionAuthor,
   preparationItems,
   quickActions,
+  saveMedicalInstruction,
   statusStyles,
   summaryConfig,
   tabs,
@@ -27,6 +29,7 @@ import { routes } from '@/shared/constants/routes';
 
 type EventListProps = {
   activeTab: AppointmentTab;
+  profileId: string;
 };
 
 type InstructionFormState = {
@@ -39,6 +42,9 @@ type InstructionFormState = {
   doctorInstructions: string;
   exams: string;
   patientActions: string;
+  medicationName: string;
+  medicationDose: string;
+  medicationFrequencyHours: string;
   status: MedicalInstruction['status'];
 };
 
@@ -52,6 +58,9 @@ const defaultInstructionForm: InstructionFormState = {
   doctorInstructions: '',
   exams: '',
   patientActions: '',
+  medicationName: '',
+  medicationDose: '',
+  medicationFrequencyHours: '',
   status: 'Pendiente',
 };
 
@@ -125,8 +134,8 @@ function EventRow({
   );
 }
 
-function EventList({ activeTab }: EventListProps) {
-  const events = useMemo(() => getEventsByTab(activeTab), [activeTab]);
+function EventList({ activeTab, profileId }: EventListProps) {
+  const events = useMemo(() => getEventsByTab(activeTab, profileId), [activeTab, profileId]);
 
   if (activeTab === 'today') {
     const groupedEvents = getGroupedTodayEvents(events);
@@ -187,8 +196,11 @@ function EventList({ activeTab }: EventListProps) {
   );
 }
 
-function NextActivityCard({ activeTab }: EventListProps) {
-  const nextEvent = useMemo(() => getNextEvent(getEventsByTab(activeTab)), [activeTab]);
+function NextActivityCard({ activeTab, profileId }: EventListProps) {
+  const nextEvent = useMemo(
+    () => getNextEvent(getEventsByTab(activeTab, profileId)),
+    [activeTab, profileId],
+  );
 
   if (!nextEvent) {
     return null;
@@ -275,8 +287,8 @@ function DaySummaryCard({ activeTab }: EventListProps) {
   );
 }
 
-function MiniCalendarCard() {
-  const days = getMiniCalendarDays();
+function MiniCalendarCard({ profileId }: { profileId: string }) {
+  const days = getMiniCalendarDays(profileId);
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
@@ -461,6 +473,38 @@ function MedicalInstructionsSection({
               </div>
 
               <div className="rounded-[22px] bg-white p-4">
+                <p className="text-sm font-semibold text-blue-600">Medicacion indicada</p>
+                {instruction.medication ? (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2.5 w-2.5 rounded-full bg-blue-500" />
+                      <p className="text-sm leading-6 text-text-main">
+                        <span className="font-semibold">Medicamento:</span>{' '}
+                        {instruction.medication.name}
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2.5 w-2.5 rounded-full bg-blue-500" />
+                      <p className="text-sm leading-6 text-text-main">
+                        <span className="font-semibold">Dosis:</span> {instruction.medication.dose}
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2.5 w-2.5 rounded-full bg-blue-500" />
+                      <p className="text-sm leading-6 text-text-main">
+                        <span className="font-semibold">Frecuencia:</span>{' '}
+                        {instruction.medication.frequencyHours}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm leading-6 text-text-muted">
+                    No se indico medicacion en este registro.
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-[22px] bg-white p-4">
                 <p className="text-sm font-semibold text-blue-600">Acciones para ti</p>
                 <div className="mt-3 space-y-2">
                   {instruction.patientActions.map((action) => (
@@ -620,6 +664,57 @@ function CreateInstructionView({
               />
             </label>
 
+            <div className="space-y-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 md:col-span-2">
+              <div>
+                <p className="text-sm font-semibold text-blue-600">Medicacion indicada</p>
+                <p className="mt-1 text-xs leading-5 text-text-muted">
+                  Completa esta parte solo si en la indicacion se receto o ajusto un medicamento.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-text-main">
+                    Nombre del medicamento
+                  </span>
+                  <input
+                    type="text"
+                    value={formValues.medicationName}
+                    onChange={(event) => onChange('medicationName', event.target.value)}
+                    placeholder="Ej. Paracetamol"
+                    className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-text-main">Cantidad o dosis</span>
+                  <input
+                    type="text"
+                    value={formValues.medicationDose}
+                    onChange={(event) => onChange('medicationDose', event.target.value)}
+                    placeholder="Ej. 1 comprimido"
+                    className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-text-main">Frecuencia en horas</span>
+                  <select
+                    value={formValues.medicationFrequencyHours}
+                    onChange={(event) => onChange('medicationFrequencyHours', event.target.value)}
+                    className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Cada 4 horas">Cada 4 horas</option>
+                    <option value="Cada 6 horas">Cada 6 horas</option>
+                    <option value="Cada 8 horas">Cada 8 horas</option>
+                    <option value="Cada 12 horas">Cada 12 horas</option>
+                    <option value="Cada 24 horas">Cada 24 horas</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
             <label className="space-y-2 md:col-span-2">
               <span className="text-sm font-semibold text-text-main">Estado</span>
               <select
@@ -655,21 +750,28 @@ function CreateInstructionView({
 }
 
 export function AppointmentsPage() {
+  const { activeProfile } = usePatientProfile();
   const [activeTab, setActiveTab] = useState<AppointmentTab>('today');
-  const [instructionItems, setInstructionItems] = useState<MedicalInstruction[]>(medicalInstructions);
+  const [instructionItems, setInstructionItems] = useState<MedicalInstruction[]>(
+    () => getMedicalInstructions(activeProfile.id),
+  );
   const [successMessage, setSuccessMessage] = useState('');
   const [isCreatingInstruction, setIsCreatingInstruction] = useState(false);
   const [formValues, setFormValues] = useState<InstructionFormState>(defaultInstructionForm);
   const [formError, setFormError] = useState('');
 
+  useEffect(() => {
+    setInstructionItems(getMedicalInstructions(activeProfile.id));
+  }, [activeProfile.id]);
+
   function handleAddInstruction(instruction: Omit<MedicalInstruction, 'id'>) {
-    setInstructionItems((current) => [
-      {
-        id: `mi-${current.length + 1}-${Date.now()}`,
-        ...instruction,
-      },
-      ...current,
-    ]);
+    const nextInstruction = {
+      id: `mi-${instructionItems.length + 1}-${Date.now()}`,
+      ...instruction,
+    };
+
+    saveMedicalInstruction(nextInstruction);
+    setInstructionItems((current) => [nextInstruction, ...current]);
   }
 
   function resetInstructionForm() {
@@ -712,6 +814,7 @@ export function AppointmentsPage() {
     }
 
     handleAddInstruction({
+      profileId: activeProfile.id,
       registeredBy: formValues.registeredBy,
       date: formValues.date,
       professional: formValues.professional.trim(),
@@ -723,6 +826,17 @@ export function AppointmentsPage() {
         .split('\n')
         .map((item) => item.trim())
         .filter(Boolean),
+      medication:
+        formValues.medicationName.trim() ||
+        formValues.medicationDose.trim() ||
+        formValues.medicationFrequencyHours
+          ? {
+              name: formValues.medicationName.trim() || 'Medicamento sin nombre indicado',
+              dose: formValues.medicationDose.trim() || 'Dosis no especificada',
+              frequencyHours:
+                formValues.medicationFrequencyHours || 'Frecuencia no especificada',
+            }
+          : null,
       patientActions: formValues.patientActions
         .split('\n')
         .map((item) => item.trim())
@@ -799,8 +913,7 @@ export function AppointmentsPage() {
             </div>
           ) : null}
 
-          <NextActivityCard activeTab={activeTab} />
-
+          <NextActivityCard activeTab={activeTab} profileId={activeProfile.id} />
           <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -817,7 +930,7 @@ export function AppointmentsPage() {
             </div>
 
             <div className="mt-6">
-              <EventList activeTab={activeTab} />
+              <EventList activeTab={activeTab} profileId={activeProfile.id} />
             </div>
           </Card>
 
@@ -828,8 +941,8 @@ export function AppointmentsPage() {
         </div>
 
         <aside className="space-y-4">
-          <DaySummaryCard activeTab={activeTab} />
-          <MiniCalendarCard />
+          <DaySummaryCard activeTab={activeTab} profileId={activeProfile.id} />
+          <MiniCalendarCard profileId={activeProfile.id} />
           <PreparationCard />
           <QuickActionsCard />
         </aside>

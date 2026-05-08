@@ -3,8 +3,8 @@ import { ProtectedRoute } from '@/app/router/protected-route';
 import { LoginPage } from '@/modules/auth/pages/login-page';
 import { AppointmentsPage } from '@/modules/appointments/pages/appointments-page';
 import { FacilitiesPage } from '@/modules/facilities/pages/facilities-page';
-import { ModulePlaceholderPage } from '@/modules/common/pages/module-placeholder-page';
 import { DashboardPage } from '@/modules/dashboard/pages/dashboard-page';
+import { MedicationsPage } from '@/modules/medications/pages/medications-page';
 import { PatientsPage } from '@/modules/patients/pages/patients-page';
 import { NewPatientPage } from '@/modules/patients/pages/new-patient-page';
 import { ProfessionalsPage } from '@/modules/professionals/pages/professionals-page';
@@ -50,6 +50,10 @@ const router = createBrowserRouter([
       {
         path: routes.schedules,
         element: <SchedulesPage />,
+      },
+      {
+        path: routes.medications,
+        element: <MedicationsPage />,
       },
     ],
   },

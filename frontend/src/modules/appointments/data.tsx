@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { primaryProfileId } from '@/modules/patient-profiles/data';
 
 export type AppointmentTab = 'today' | 'week' | 'upcoming';
 export type ClinicalEventType = 'cita' | 'examen';
@@ -6,6 +7,7 @@ export type ClinicalEventStatus = 'confirmada' | 'pendiente' | 'completada' | 'c
 
 export type ClinicalEvent = {
   id: string;
+  profileId: string;
   tab: AppointmentTab;
   dayLabel: string;
   dateOrder: number;
@@ -32,9 +34,15 @@ export type QuickAction = {
 
 export type MedicalInstructionStatus = 'Pendiente' | 'En proceso' | 'Completado';
 export type MedicalInstructionAuthor = 'doctor' | 'paciente' | 'acompanante';
+export type MedicationInstruction = {
+  name: string;
+  dose: string;
+  frequencyHours: string;
+};
 
 export type MedicalInstruction = {
   id: string;
+  profileId: string;
   registeredBy: MedicalInstructionAuthor;
   date: string;
   professional: string;
@@ -44,10 +52,12 @@ export type MedicalInstruction = {
   doctorInstructions: string;
   exams: string[];
   patientActions: string[];
+  medication?: MedicationInstruction | null;
   status: MedicalInstructionStatus;
 };
 
 export type ScheduledAppointmentDraft = {
+  profileId: string;
   professional: string;
   specialty: string;
   center: string;
@@ -64,6 +74,7 @@ type StoredScheduledAppointment = ScheduledAppointmentDraft & {
 };
 
 const scheduledAppointmentsStorageKey = 'agenda_medica_scheduled_appointments';
+const medicalInstructionsStorageKey = 'agenda_medica_medical_instructions';
 
 export const tabs: Array<{ id: AppointmentTab; label: string }> = [
   { id: 'today', label: 'Hoy' },
@@ -74,6 +85,7 @@ export const tabs: Array<{ id: AppointmentTab; label: string }> = [
 export const clinicalEvents: ClinicalEvent[] = [
   {
     id: 'a1',
+    profileId: primaryProfileId,
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
@@ -87,6 +99,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a2',
+    profileId: primaryProfileId,
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
@@ -100,6 +113,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a3',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Martes',
     dateOrder: 2,
@@ -113,6 +127,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a4',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Miercoles',
     dateOrder: 3,
@@ -126,6 +141,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a5',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Jueves',
     dateOrder: 4,
@@ -139,6 +155,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a6',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '02 Jul',
     dateOrder: 10,
@@ -152,6 +169,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a7',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '08 Jul',
     dateOrder: 12,
@@ -165,6 +183,7 @@ export const clinicalEvents: ClinicalEvent[] = [
   },
   {
     id: 'a8',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '12 Jul',
     dateOrder: 13,
@@ -331,6 +350,7 @@ export const medicalInstructionStatusStyles: Record<MedicalInstructionStatus, st
 export const medicalInstructions: MedicalInstruction[] = [
   {
     id: 'mi-1',
+    profileId: primaryProfileId,
     registeredBy: 'doctor',
     date: '28 Abr 2026',
     professional: 'Dra. Javiera Molina',
@@ -346,10 +366,16 @@ export const medicalInstructions: MedicalInstruction[] = [
       'Registrar presion arterial manana y noche',
       'Agendar perfil lipidico antes del proximo control',
     ],
+    medication: {
+      name: 'Losartan',
+      dose: '1 comprimido',
+      frequencyHours: 'Cada 12 horas',
+    },
     status: 'En proceso',
   },
   {
     id: 'mi-2',
+    profileId: primaryProfileId,
     registeredBy: 'doctor',
     date: '24 Abr 2026',
     professional: 'Dr. Tomas Herrera',
@@ -365,10 +391,16 @@ export const medicalInstructions: MedicalInstruction[] = [
       'Solicitar control metabolico para el proximo mes',
       'Anotar molestias digestivas si reaparecen',
     ],
+    medication: {
+      name: 'Omeprazol',
+      dose: '1 capsula',
+      frequencyHours: 'Cada 24 horas',
+    },
     status: 'Pendiente',
   },
   {
     id: 'mi-3',
+    profileId: primaryProfileId,
     registeredBy: 'acompanante',
     date: '18 Abr 2026',
     professional: 'Equipo de laboratorio',
@@ -383,12 +415,17 @@ export const medicalInstructions: MedicalInstruction[] = [
       'Revisar portal de salud para resultados',
       'Llevar resultados impresos o digitales al control',
     ],
+    medication: null,
     status: 'Completado',
   },
 ];
 
 function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function matchesProfile(itemProfileId: string, activeProfileId?: string) {
+  return !activeProfileId || itemProfileId === activeProfileId;
 }
 
 function capitalizeLabel(value: string) {
@@ -450,6 +487,29 @@ function getDayLabel(targetDate: Date, dayDifference: number) {
   return `${day} ${capitalizeLabel(month)}`;
 }
 
+function isValidMedicalInstruction(item: unknown): item is MedicalInstruction {
+  if (!item || typeof item !== 'object') {
+    return false;
+  }
+
+  const instruction = item as Record<string, unknown>;
+
+  return (
+    typeof instruction.id === 'string' &&
+    typeof instruction.profileId === 'string' &&
+    typeof instruction.registeredBy === 'string' &&
+    typeof instruction.date === 'string' &&
+    typeof instruction.professional === 'string' &&
+    typeof instruction.specialty === 'string' &&
+    typeof instruction.relatedEvent === 'string' &&
+    typeof instruction.clinicalSummary === 'string' &&
+    typeof instruction.doctorInstructions === 'string' &&
+    Array.isArray(instruction.exams) &&
+    Array.isArray(instruction.patientActions) &&
+    typeof instruction.status === 'string'
+  );
+}
+
 function readStoredScheduledAppointments(): StoredScheduledAppointment[] {
   if (!canUseStorage()) {
     return [];
@@ -471,6 +531,7 @@ function readStoredScheduledAppointments(): StoredScheduledAppointment[] {
     return parsedValue.filter(
       (item): item is StoredScheduledAppointment =>
         typeof item?.id === 'string' &&
+        typeof item?.profileId === 'string' &&
         typeof item?.professional === 'string' &&
         typeof item?.specialty === 'string' &&
         typeof item?.center === 'string' &&
@@ -479,6 +540,33 @@ function readStoredScheduledAppointments(): StoredScheduledAppointment[] {
         typeof item?.time === 'string' &&
         typeof item?.reason === 'string',
     );
+  } catch {
+    return [];
+  }
+}
+
+function readStoredMedicalInstructions(): MedicalInstruction[] {
+  if (!canUseStorage()) {
+    return [];
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(medicalInstructionsStorageKey);
+
+    if (!storedValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(storedValue);
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.filter(isValidMedicalInstruction).map((instruction) => ({
+      ...instruction,
+      medication: instruction.medication ?? null,
+    }));
   } catch {
     return [];
   }
@@ -497,6 +585,7 @@ function mapStoredAppointmentToClinicalEvent(
 
   return {
     id: appointment.id,
+    profileId: appointment.profileId,
     tab: getTabFromDayDifference(dayDifference),
     dayLabel: getDayLabel(appointmentDate, dayDifference),
     dateOrder: dayDifference,
@@ -510,14 +599,18 @@ function mapStoredAppointmentToClinicalEvent(
   };
 }
 
-function getStoredScheduledClinicalEvents() {
+function getStoredScheduledClinicalEvents(activeProfileId?: string) {
   return readStoredScheduledAppointments()
     .map(mapStoredAppointmentToClinicalEvent)
+    .filter((event) => (event ? matchesProfile(event.profileId, activeProfileId) : false))
     .filter((event): event is ClinicalEvent => Boolean(event));
 }
 
-function getAllClinicalEvents() {
-  return [...clinicalEvents, ...getStoredScheduledClinicalEvents()];
+function getAllClinicalEvents(activeProfileId?: string) {
+  return [
+    ...clinicalEvents.filter((event) => matchesProfile(event.profileId, activeProfileId)),
+    ...getStoredScheduledClinicalEvents(activeProfileId),
+  ];
 }
 
 export function saveScheduledAppointment(appointment: ScheduledAppointmentDraft) {
@@ -539,8 +632,45 @@ export function saveScheduledAppointment(appointment: ScheduledAppointmentDraft)
   return nextAppointment;
 }
 
-export function getEventsByTab(activeTab: AppointmentTab) {
-  return getAllClinicalEvents()
+export function getMedicalInstructions(activeProfileId?: string) {
+  return [
+    ...readStoredMedicalInstructions().filter((instruction) =>
+      matchesProfile(instruction.profileId, activeProfileId),
+    ),
+    ...medicalInstructions.filter((instruction) =>
+      matchesProfile(instruction.profileId, activeProfileId),
+    ),
+  ];
+}
+
+export function saveMedicalInstruction(instruction: MedicalInstruction) {
+  if (canUseStorage()) {
+    const currentInstructions = readStoredMedicalInstructions();
+    window.localStorage.setItem(
+      medicalInstructionsStorageKey,
+      JSON.stringify([instruction, ...currentInstructions]),
+    );
+  }
+
+  return instruction;
+}
+
+export function getMedicationSummaryItems(activeProfileId?: string) {
+  return getMedicalInstructions(activeProfileId)
+    .filter((instruction) => instruction.medication)
+    .map((instruction) => ({
+      id: instruction.id,
+      name: instruction.medication?.name ?? '',
+      dose: instruction.medication?.dose ?? '',
+      frequencyHours: instruction.medication?.frequencyHours ?? '',
+      doctor: instruction.professional,
+      date: instruction.date,
+      relatedEvent: instruction.relatedEvent,
+    }));
+}
+
+export function getEventsByTab(activeTab: AppointmentTab, activeProfileId?: string) {
+  return getAllClinicalEvents(activeProfileId)
     .filter((event) => event.tab === activeTab)
     .sort((a, b) => a.dateOrder - b.dateOrder || a.time.localeCompare(b.time));
 }
@@ -584,7 +714,7 @@ export function getGroupedTodayEvents(events: ClinicalEvent[]) {
     .filter((group) => group.items.length > 0);
 }
 
-export function getMiniCalendarDays() {
+export function getMiniCalendarDays(activeProfileId?: string) {
   return [
     { id: 'mon', label: 'Lun', dateNumber: 15, isToday: false },
     { id: 'tue', label: 'Mar', dateNumber: 16, isToday: true },
@@ -594,7 +724,9 @@ export function getMiniCalendarDays() {
     { id: 'sat', label: 'Sab', dateNumber: 20, isToday: false },
     { id: 'sun', label: 'Dom', dateNumber: 21, isToday: false },
   ].map((day, index) => {
-    const eventsCount = getAllClinicalEvents().filter((event) => event.dateOrder === index + 1).length;
+    const eventsCount = getAllClinicalEvents(activeProfileId).filter(
+      (event) => event.dateOrder === index + 1,
+    ).length;
 
     return {
       ...day,

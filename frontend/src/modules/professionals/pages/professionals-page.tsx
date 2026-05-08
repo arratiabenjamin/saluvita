@@ -5,6 +5,7 @@ import {
   Professional,
 } from '@/modules/professionals/data';
 import { saveScheduledAppointment } from '@/modules/appointments/data';
+import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
 import { routes } from '@/shared/constants/routes';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -191,6 +192,7 @@ function ProfessionalAppointmentForm({
 
 export function ProfessionalsPage() {
   const navigate = useNavigate();
+  const { activeProfile } = usePatientProfile();
   const [professionalItems, setProfessionalItems] = useState(initialProfessionals);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
@@ -244,6 +246,7 @@ export function ProfessionalsPage() {
     }
 
     saveScheduledAppointment({
+      profileId: activeProfile.id,
       professional: formValues.professional,
       specialty: formValues.specialty,
       center: formValues.center,

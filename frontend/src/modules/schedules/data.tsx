@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { primaryProfileId } from '@/modules/patient-profiles/data';
 
 export type ScheduleTab = 'today' | 'week' | 'upcoming';
 export type ActivityType = 'medicamento' | 'recordatorio' | 'seguimiento' | 'cuidado';
@@ -6,6 +7,7 @@ export type ActivityStatus = 'confirmada' | 'pendiente' | 'completada' | 'cancel
 
 export type HealthEvent = {
   id: string;
+  profileId: string;
   tab: ScheduleTab;
   dayLabel: string;
   dateOrder: number;
@@ -38,6 +40,7 @@ export const tabs: Array<{ id: ScheduleTab; label: string }> = [
 export const healthEvents: HealthEvent[] = [
   {
     id: '1',
+    profileId: primaryProfileId,
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
@@ -50,6 +53,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '2',
+    profileId: primaryProfileId,
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
@@ -62,6 +66,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '3',
+    profileId: primaryProfileId,
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
@@ -74,6 +79,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '4',
+    profileId: primaryProfileId,
     tab: 'today',
     dayLabel: 'Hoy',
     dateOrder: 1,
@@ -86,6 +92,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '5',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Lunes',
     dateOrder: 1,
@@ -98,6 +105,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '6',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Martes',
     dateOrder: 2,
@@ -110,6 +118,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '7',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Miercoles',
     dateOrder: 3,
@@ -122,6 +131,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '8',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Jueves',
     dateOrder: 4,
@@ -134,6 +144,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '9',
+    profileId: primaryProfileId,
     tab: 'week',
     dayLabel: 'Viernes',
     dateOrder: 5,
@@ -146,6 +157,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '10',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '02 Jul',
     dateOrder: 10,
@@ -158,6 +170,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '11',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '05 Jul',
     dateOrder: 11,
@@ -170,6 +183,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '12',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '08 Jul',
     dateOrder: 12,
@@ -182,6 +196,7 @@ export const healthEvents: HealthEvent[] = [
   },
   {
     id: '13',
+    profileId: primaryProfileId,
     tab: 'upcoming',
     dayLabel: '12 Jul',
     dateOrder: 13,
@@ -350,8 +365,13 @@ export const quickActions: QuickAction[] = [
   },
 ];
 
-export function getEventsByTab(activeTab: ScheduleTab) {
+function matchesProfile(itemProfileId: string, activeProfileId?: string) {
+  return !activeProfileId || itemProfileId === activeProfileId;
+}
+
+export function getEventsByTab(activeTab: ScheduleTab, activeProfileId?: string) {
   return healthEvents
+    .filter((event) => matchesProfile(event.profileId, activeProfileId))
     .filter((event) => event.tab === activeTab)
     .sort((a, b) => a.dateOrder - b.dateOrder || a.time.localeCompare(b.time));
 }
@@ -395,7 +415,7 @@ export function getGroupedTodayEvents(events: HealthEvent[]) {
     .filter((group) => group.items.length > 0);
 }
 
-export function getMiniCalendarDays() {
+export function getMiniCalendarDays(activeProfileId?: string) {
   return [
     { id: 'mon', label: 'Lun', dateNumber: 15, isToday: false },
     { id: 'tue', label: 'Mar', dateNumber: 16, isToday: true },
@@ -405,7 +425,9 @@ export function getMiniCalendarDays() {
     { id: 'sat', label: 'Sab', dateNumber: 20, isToday: false },
     { id: 'sun', label: 'Dom', dateNumber: 21, isToday: false },
   ].map((day, index) => {
-    const eventsCount = healthEvents.filter((event) => event.dateOrder === index + 1).length;
+    const eventsCount = healthEvents.filter(
+      (event) => matchesProfile(event.profileId, activeProfileId) && event.dateOrder === index + 1,
+    ).length;
 
     return {
       ...day,
