@@ -12,6 +12,7 @@ import { Card } from '@/shared/ui/card';
 export function PatientsPage() {
   const [search, setSearch] = useState('');
   const { data, isLoading, isError } = usePatients({ search });
+  const patients = Array.isArray(data?.data) ? data.data : [];
 
   return (
     <div className="space-y-6">
@@ -45,7 +46,7 @@ export function PatientsPage() {
         />
       ) : null}
 
-      {!isLoading && !isError && data?.data.length === 0 ? (
+      {!isLoading && !isError && patients.length === 0 ? (
         <EmptyState
           title="Aun no hay pacientes que coincidan"
           description="Prueba con otra busqueda o crea un nuevo perfil para comenzar."
@@ -57,8 +58,8 @@ export function PatientsPage() {
         />
       ) : null}
 
-      {!isLoading && !isError && data?.data.length ? (
-        <PatientTable patients={data.data} />
+      {!isLoading && !isError && patients.length ? (
+        <PatientTable patients={patients} />
       ) : null}
     </div>
   );

@@ -2,9 +2,15 @@ import { HealthSummarySection } from '@/modules/dashboard/components/health-summ
 import { HistoryDiagnosticsSection } from '@/modules/dashboard/components/history-diagnostics-section';
 import { NewAppointmentSection } from '@/modules/dashboard/components/new-appointment-section';
 import { UpcomingAppointmentsSection } from '@/modules/dashboard/components/upcoming-appointments-section';
+import { useDashboardOverview } from '@/modules/dashboard/hooks/use-dashboard-overview';
 import { Card } from '@/shared/ui/card';
 
 export function DashboardPage() {
+  const { data, isLoading, isError } = useDashboardOverview();
+  const payload = data?.data;
+  const quickSummary = payload?.quickSummary;
+  const upcomingAppointments = payload?.upcomingAppointments ?? [];
+
   return (
     <div className="space-y-8 lg:space-y-10">
       <section className="relative overflow-hidden rounded-[38px] bg-[linear-gradient(135deg,#3b82f6_0%,#2563eb_58%,#4f46e5_100%)] p-6 text-white shadow-[0_28px_70px_rgba(37,99,235,0.25)] sm:p-8 lg:p-10">
@@ -48,26 +54,38 @@ export function DashboardPage() {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[22px] bg-blue-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
-                    Citas
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-text-main">3</p>
+              {isLoading ? (
+                <p className="mt-5 text-sm text-text-muted">Cargando dashboard...</p>
+              ) : isError ? (
+                <p className="mt-5 text-sm text-text-muted">Error al cargar dashboard</p>
+              ) : (
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[22px] bg-blue-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+                      Citas
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-text-main">
+                      {quickSummary?.upcomingAppointmentsCount ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] bg-emerald-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+                      Estado
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-text-main">
+                      {quickSummary?.overallStatus ?? 'OK'}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] bg-rose-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">
+                      Avisos
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-text-main">
+                      {quickSummary?.alertsCount ?? 0}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-[22px] bg-emerald-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
-                    Estado
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-text-main">OK</p>
-                </div>
-                <div className="rounded-[22px] bg-rose-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">
-                    Avisos
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-text-main">2</p>
-                </div>
-              </div>
+              )}
             </div>
           </Card>
         </div>
@@ -75,7 +93,18 @@ export function DashboardPage() {
 
       <section className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
         <div className="space-y-6">
-          <UpcomingAppointmentsSection />
+          {isError ? (
+            <Card className="border-slate-200 bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] sm:p-7">
+              <p className="text-sm text-text-muted">Error al cargar dashboard</p>
+            </Card>
+          ) : (
+            <UpcomingAppointmentsSection
+              isLoading={isLoading}
+              isEmpty={!isLoading && (quickSummary?.upcomingAppointmentsCount ?? 0) === 0}
+              appointments={upcomingAppointments}
+            />
+          )}
+
           <HistoryDiagnosticsSection />
         </div>
 
