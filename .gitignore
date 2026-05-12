@@ -34,3 +34,4 @@ backend/prisma/dev.db-journal
 docs/informes/
 # TypeScript incremental build
 *.tsbuildinfo
+.vercel

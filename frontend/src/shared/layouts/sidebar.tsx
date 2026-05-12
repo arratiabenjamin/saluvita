@@ -16,6 +16,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     '/professionals': 'text-violet-600 bg-violet-100',
     '/facilities': 'text-amber-600 bg-amber-100',
     '/schedules': 'text-rose-500 bg-rose-100',
+    '/medications': 'text-emerald-600 bg-emerald-100',
   };
 
   return (

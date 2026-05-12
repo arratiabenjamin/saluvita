@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
+import { getMedicationSummaryItems } from '@/modules/appointments/data';
 import {
   contextualCopy,
   daySummaryMessages,
@@ -21,7 +23,85 @@ import {
 
 type EventListProps = {
   activeTab: ScheduleTab;
+  profileId: string;
 };
+
+function CurrentMedicationModal({
+  isOpen,
+  onClose,
+  profileId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  profileId: string;
+}) {
+  const medications = useMemo(() => getMedicationSummaryItems(profileId), [isOpen, profileId]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 py-6">
+      <div className="w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.22)]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+          <div>
+            <p className="text-sm font-semibold text-blue-600">Medicacion actual</p>
+            <h2 className="mt-1 text-2xl font-bold text-text-main">
+              Resumen rapido para mostrar al doctor
+            </h2>
+          </div>
+          <Button type="button" variant="secondary" className="min-h-11 px-5" onClick={onClose}>
+            Cerrar
+          </Button>
+        </div>
+
+        <div className="max-h-[calc(100vh-180px)] overflow-y-auto px-6 py-5">
+          {medications.length > 0 ? (
+            <div className="space-y-4">
+              {medications.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-text-main">{item.name}</p>
+                      <p className="text-sm text-text-muted">
+                        <span className="font-semibold text-text-main">Dosis:</span> {item.dose}
+                      </p>
+                      <p className="text-sm text-text-muted">
+                        <span className="font-semibold text-text-main">Frecuencia:</span>{' '}
+                        {item.frequencyHours}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm text-text-muted">
+                        <span className="font-semibold text-text-main">Doctor:</span> {item.doctor}
+                      </p>
+                      <p className="text-sm text-text-muted">
+                        <span className="font-semibold text-text-main">Fecha:</span> {item.date}
+                      </p>
+                      <p className="text-sm text-text-muted">
+                        <span className="font-semibold text-text-main">Observacion:</span>{' '}
+                        {item.relatedEvent || 'Sin cita asociada'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-5 py-6 text-sm text-text-muted">
+              No hay medicamentos registrados actualmente.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function EventRow({
   time,
@@ -84,8 +164,8 @@ function EventRow({
   );
 }
 
-function EventList({ activeTab }: EventListProps) {
-  const events = useMemo(() => getEventsByTab(activeTab), [activeTab]);
+function EventList({ activeTab, profileId }: EventListProps) {
+  const events = useMemo(() => getEventsByTab(activeTab, profileId), [activeTab, profileId]);
 
   if (activeTab === 'today') {
     const groupedEvents = getGroupedTodayEvents(events);
@@ -146,8 +226,11 @@ function EventList({ activeTab }: EventListProps) {
   );
 }
 
-function NextActivityCard({ activeTab }: EventListProps) {
-  const nextEvent = useMemo(() => getNextEvent(getEventsByTab(activeTab)), [activeTab]);
+function NextActivityCard({ activeTab, profileId }: EventListProps) {
+  const nextEvent = useMemo(
+    () => getNextEvent(getEventsByTab(activeTab, profileId)),
+    [activeTab, profileId],
+  );
 
   if (!nextEvent) {
     return null;
@@ -158,8 +241,8 @@ function NextActivityCard({ activeTab }: EventListProps) {
   return (
     <Card className="overflow-hidden border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#ffffff_60%,#f8fbff_100%)] p-0 shadow-[0_22px_48px_rgba(37,99,235,0.14)]">
       <div className="border-b border-blue-100 px-6 py-4 sm:px-7">
-        <p className="text-sm font-semibold text-blue-600">Proxima actividad</p>
-        <p className="mt-2 text-sm text-text-muted">Este es tu proximo compromiso.</p>
+        <p className="text-sm font-semibold text-blue-600">Proximo horario</p>
+        <p className="mt-2 text-sm text-text-muted">Este es tu siguiente bloque de rutina diaria.</p>
       </div>
 
       <div className="flex flex-col gap-6 px-6 py-6 sm:px-7 lg:flex-row lg:items-center lg:justify-between">
@@ -211,8 +294,8 @@ function DaySummaryCard({ activeTab }: EventListProps) {
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
-      <p className="text-sm font-semibold text-blue-600">Resumen del dia</p>
-      <h2 className="mt-2 text-xl font-bold text-text-main">Tu jornada en un vistazo</h2>
+      <p className="text-sm font-semibold text-blue-600">Resumen de horarios</p>
+      <h2 className="mt-2 text-xl font-bold text-text-main">Tu rutina en un vistazo</h2>
       <p className="mt-2 text-sm leading-6 text-text-muted">{daySummaryMessages[activeTab]}</p>
 
       <div className="mt-5 space-y-3">
@@ -233,18 +316,18 @@ function DaySummaryCard({ activeTab }: EventListProps) {
   );
 }
 
-function MiniCalendarCard() {
-  const days = getMiniCalendarDays();
+function MiniCalendarCard({ profileId }: { profileId: string }) {
+  const days = getMiniCalendarDays(profileId);
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-blue-600">Mini calendario</p>
-          <h2 className="mt-2 text-xl font-bold text-text-main">Semana actual</h2>
+          <h2 className="mt-2 text-xl font-bold text-text-main">Semana de rutina</h2>
         </div>
         <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-          Actividades
+          Horarios
         </div>
       </div>
 
@@ -279,7 +362,7 @@ function MiniCalendarCard() {
 
       <div className="mt-4 space-y-2 text-xs text-text-muted">
         <p>El dia actual queda resaltado en azul.</p>
-        <p>Los puntos indican dias con actividades registradas en los mocks actuales.</p>
+        <p>Los puntos indican dias con rutinas o recordatorios registrados.</p>
       </div>
     </Card>
   );
@@ -288,8 +371,8 @@ function MiniCalendarCard() {
 function PreparationCard() {
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
-      <p className="text-sm font-semibold text-blue-600">Preparacion</p>
-      <h2 className="mt-2 text-xl font-bold text-text-main">Antes de salir</h2>
+      <p className="text-sm font-semibold text-blue-600">Cuidados</p>
+      <h2 className="mt-2 text-xl font-bold text-text-main">Antes de empezar el dia</h2>
 
       <div className="mt-5 space-y-3">
         {preparationItems.map((item) => (
@@ -310,7 +393,7 @@ function QuickActionsCard() {
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
       <p className="text-sm font-semibold text-blue-600">Acciones rapidas</p>
-      <h2 className="mt-2 text-xl font-bold text-text-main">Gestiona tu agenda</h2>
+      <h2 className="mt-2 text-xl font-bold text-text-main">Gestiona tus horarios</h2>
 
       <div className="mt-5 space-y-3">
         {quickActions.map((action, index) => (
@@ -330,20 +413,70 @@ function QuickActionsCard() {
   );
 }
 
+function CurrentMedicationCard({ onOpen, profileId }: { onOpen: () => void; profileId: string }) {
+  const medications = useMemo(() => getMedicationSummaryItems(profileId), [profileId]);
+  const previewItems = medications.slice(0, 3);
+
+  return (
+    <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-blue-600">Medicamentos indicados</p>
+          <h2 className="mt-2 text-2xl font-bold text-text-main">Lo que estas tomando hoy</h2>
+        </div>
+        <Button type="button" className="min-h-11 px-5" onClick={onOpen}>
+          Mostrar medicacion actual
+        </Button>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {previewItems.length > 0 ? (
+          previewItems.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <p className="text-sm font-semibold text-text-main">{item.name}</p>
+              <p className="mt-1 text-sm text-text-muted">
+                {item.dose} · {item.frequencyHours}
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                Indicado por {item.doctor} el {item.date}
+              </p>
+            </div>
+          ))
+        ) : (
+          <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-text-muted">
+            No hay medicamentos registrados actualmente.
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export function SchedulesPage() {
+  const { activeProfile } = usePatientProfile();
   const [activeTab, setActiveTab] = useState<ScheduleTab>('today');
+  const [isMedicationOpen, setIsMedicationOpen] = useState(false);
 
   return (
     <div className="space-y-8">
+      <CurrentMedicationModal
+        isOpen={isMedicationOpen}
+        onClose={() => setIsMedicationOpen(false)}
+        profileId={activeProfile.id}
+      />
+
       <section className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold text-blue-600">Mi agenda de salud</p>
+            <p className="text-sm font-semibold text-blue-600">Horarios y rutina diaria</p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-text-main sm:text-4xl">
-              Mi agenda de salud
+              Mis horarios de salud
             </h1>
             <p className="mt-3 text-base leading-8 text-text-muted">
-              Organiza tus citas, recordatorios y actividades del dia.
+              Organiza medicamentos, recordatorios, cuidados y bloques personales del dia.
             </p>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-text-muted sm:text-base">
               {contextualCopy[activeTab]}
@@ -371,32 +504,37 @@ export function SchedulesPage() {
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.9fr)]">
         <div className="space-y-6">
-          <NextActivityCard activeTab={activeTab} />
+          <NextActivityCard activeTab={activeTab} profileId={activeProfile.id} />
+
+          <CurrentMedicationCard
+            onOpen={() => setIsMedicationOpen(true)}
+            profileId={activeProfile.id}
+          />
 
           <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-blue-600">Agenda principal</p>
-                <h2 className="mt-2 text-2xl font-bold text-text-main">Tus actividades</h2>
+                <p className="text-sm font-semibold text-blue-600">Rutina principal</p>
+                <h2 className="mt-2 text-2xl font-bold text-text-main">Tus horarios y cuidados</h2>
               </div>
               <p className="text-sm text-text-muted">
                 {activeTab === 'today'
                   ? 'Ordenada por bloques del dia.'
                   : activeTab === 'week'
                     ? 'Agrupada para seguir cada jornada.'
-                    : 'Vista cronologica de lo que viene.'}
+                    : 'Vista cronologica de tus proximos horarios.'}
               </p>
             </div>
 
             <div className="mt-6">
-              <EventList activeTab={activeTab} />
+              <EventList activeTab={activeTab} profileId={activeProfile.id} />
             </div>
           </Card>
         </div>
 
         <aside className="space-y-4">
-          <DaySummaryCard activeTab={activeTab} />
-          <MiniCalendarCard />
+          <DaySummaryCard activeTab={activeTab} profileId={activeProfile.id} />
+          <MiniCalendarCard profileId={activeProfile.id} />
           <PreparationCard />
           <QuickActionsCard />
         </aside>

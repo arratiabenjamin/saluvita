@@ -1,0 +1,12 @@
+import { useContext } from 'react';
+import { PatientProfileContext } from '@/modules/patient-profiles/patient-profile-context';
+
+export function usePatientProfile() {
+  const context = useContext(PatientProfileContext);
+
+  if (!context) {
+    throw new Error('usePatientProfile must be used within PatientProfileProvider');
+  }
+
+  return context;
+}

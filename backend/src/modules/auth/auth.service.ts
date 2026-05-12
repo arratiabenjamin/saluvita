@@ -177,11 +177,23 @@ export class AuthService {
       where: { email, deletedAt: null },
     });
 
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-    if (user.status !== 'ACTIVE') throw new ForbiddenException(`User status is ${user.status}`);
+    if (!user) {
+      console.error(`[AUTH] Usuario no encontrado: ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    
+    if (user.status !== 'ACTIVE') {
+      console.warn(`[AUTH] Usuario inactivo: ${email} - Status: ${user.status}`);
+      throw new ForbiddenException(`User status is ${user.status}`);
+    }
 
     const validPassword = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!validPassword) throw new UnauthorizedException('Invalid credentials');
+    console.log(`[AUTH] Validación bcrypt para ${email}: ${validPassword}`);
+    
+    if (!validPassword) {
+      console.error(`[AUTH] Contraseña inválida para: ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     await this.prisma.user.update({
       where: { id: user.id },
