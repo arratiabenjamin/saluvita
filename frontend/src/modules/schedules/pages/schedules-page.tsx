@@ -3,7 +3,10 @@ import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
 import { getMedicationSummaryItems } from '@/modules/appointments/data';
+import { useSchedulesOverview } from '@/modules/schedules/hooks/use-schedules-overview';
 import {
+  ActivityStatus,
+  ActivityType,
   contextualCopy,
   daySummaryMessages,
   EventIcon,
@@ -12,6 +15,7 @@ import {
   getGroupedWeekEvents,
   getMiniCalendarDays,
   getNextEvent,
+  HealthEvent,
   preparationItems,
   quickActions,
   ScheduleTab,
@@ -21,9 +25,64 @@ import {
   typeStyles,
 } from '@/modules/schedules/data';
 
+type SchedulesApiEvent = {
+  eventId: string;
+  reminderId: string;
+  patientId: string;
+  scheduledFor: string;
+  dayLabel: string;
+  time: string;
+  title: string;
+  location: string;
+  type: 'medicamento' | 'recordatorio' | 'examen';
+  status: 'pendiente' | 'completada' | 'cancelada';
+  actionLabel: string;
+};
+
+function mapApiTypeToActivityType(type: string): ActivityType {
+  if (type === 'medicamento') {
+    return 'medicamento';
+  }
+  if (type === 'examen') {
+    return 'recordatorio';
+  }
+  return 'recordatorio';
+}
+
+function mapApiStatusToActivityStatus(status: string): ActivityStatus {
+  if (status === 'completada') {
+    return 'completada';
+  }
+  if (status === 'cancelada') {
+    return 'cancelada';
+  }
+  return 'pendiente';
+}
+
+function mapApiEventToHealthEvent(event: SchedulesApiEvent, tab: ScheduleTab): HealthEvent {
+  const d = new Date(event.scheduledFor);
+  const dateOrder = Number.isNaN(d.getTime()) ? 0 : d.getTime();
+
+  return {
+    id: event.eventId,
+    profileId: event.patientId,
+    tab,
+    dayLabel: event.dayLabel,
+    dateOrder,
+    time: event.time,
+    title: event.title,
+    location: event.location,
+    type: mapApiTypeToActivityType(event.type),
+    status: mapApiStatusToActivityStatus(event.status),
+    actionLabel: event.actionLabel,
+  };
+}
+
 type EventListProps = {
   activeTab: ScheduleTab;
   profileId: string;
+  remoteEvents?: HealthEvent[];
+  remoteNext?: HealthEvent | null;
 };
 
 function CurrentMedicationModal({
@@ -164,8 +223,19 @@ function EventRow({
   );
 }
 
-function EventList({ activeTab, profileId }: EventListProps) {
-  const events = useMemo(() => getEventsByTab(activeTab, profileId), [activeTab, profileId]);
+function EventList({ activeTab, profileId, remoteEvents }: EventListProps) {
+  const events = useMemo(() => {
+    if (remoteEvents !== undefined) {
+      return [...remoteEvents].sort(
+        (a, b) => a.dateOrder - b.dateOrder || a.time.localeCompare(b.time),
+      );
+    }
+    return getEventsByTab(activeTab, profileId);
+  }, [activeTab, profileId, remoteEvents]);
+
+  if (remoteEvents !== undefined && remoteEvents.length === 0) {
+    return <p className="text-sm text-text-muted">Sin horarios proximos.</p>;
+  }
 
   if (activeTab === 'today') {
     const groupedEvents = getGroupedTodayEvents(events);
@@ -226,11 +296,16 @@ function EventList({ activeTab, profileId }: EventListProps) {
   );
 }
 
-function NextActivityCard({ activeTab, profileId }: EventListProps) {
-  const nextEvent = useMemo(
-    () => getNextEvent(getEventsByTab(activeTab, profileId)),
-    [activeTab, profileId],
-  );
+function NextActivityCard({ activeTab, profileId, remoteEvents, remoteNext }: EventListProps) {
+  const nextEvent = useMemo(() => {
+    if (remoteEvents !== undefined) {
+      if (remoteNext !== undefined) {
+        return remoteNext;
+      }
+      return getNextEvent(remoteEvents);
+    }
+    return getNextEvent(getEventsByTab(activeTab, profileId));
+  }, [activeTab, profileId, remoteEvents, remoteNext]);
 
   if (!nextEvent) {
     return null;
@@ -460,6 +535,30 @@ export function SchedulesPage() {
   const [activeTab, setActiveTab] = useState<ScheduleTab>('today');
   const [isMedicationOpen, setIsMedicationOpen] = useState(false);
 
+  const { data, isLoading, isError } = useSchedulesOverview({ view: activeTab });
+
+  const remoteEvents = useMemo(() => {
+    if (!data?.data?.events) {
+      return undefined;
+    }
+    return data.data.events.map((event) =>
+      mapApiEventToHealthEvent(event as SchedulesApiEvent, activeTab),
+    );
+  }, [data, activeTab]);
+
+  const remoteNext = useMemo((): HealthEvent | null | undefined => {
+    if (!data?.data) {
+      return undefined;
+    }
+    if (data.data.nextEvent === null) {
+      return null;
+    }
+    if (data.data.nextEvent) {
+      return mapApiEventToHealthEvent(data.data.nextEvent as SchedulesApiEvent, activeTab);
+    }
+    return undefined;
+  }, [data, activeTab]);
+
   return (
     <div className="space-y-8">
       <CurrentMedicationModal
@@ -504,7 +603,20 @@ export function SchedulesPage() {
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.9fr)]">
         <div className="space-y-6">
-          <NextActivityCard activeTab={activeTab} profileId={activeProfile.id} />
+          {isLoading ? (
+            <Card className="overflow-hidden border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#ffffff_60%,#f8fbff_100%)] p-0 shadow-[0_22px_48px_rgba(37,99,235,0.14)]">
+              <div className="px-6 py-6 sm:px-7">
+                <p className="text-sm text-text-muted">Cargando horarios...</p>
+              </div>
+            </Card>
+          ) : isError ? null : (
+            <NextActivityCard
+              activeTab={activeTab}
+              profileId={activeProfile.id}
+              remoteEvents={remoteEvents ?? []}
+              remoteNext={remoteNext}
+            />
+          )}
 
           <CurrentMedicationCard
             onOpen={() => setIsMedicationOpen(true)}
@@ -527,7 +639,17 @@ export function SchedulesPage() {
             </div>
 
             <div className="mt-6">
-              <EventList activeTab={activeTab} profileId={activeProfile.id} />
+              {isError ? (
+                <p className="text-sm text-text-muted">Error al cargar horarios</p>
+              ) : isLoading ? (
+                <p className="text-sm text-text-muted">Cargando horarios...</p>
+              ) : (
+                <EventList
+                  activeTab={activeTab}
+                  profileId={activeProfile.id}
+                  remoteEvents={remoteEvents}
+                />
+              )}
             </div>
           </Card>
         </div>
