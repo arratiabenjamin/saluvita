@@ -5,7 +5,5 @@ export const routes = {
   newPatient: '/patients/new',
   appointments: '/appointments',
   professionals: '/professionals',
-  facilities: '/facilities',
   schedules: '/schedules',
-  medications: '/medications',
 } as const;

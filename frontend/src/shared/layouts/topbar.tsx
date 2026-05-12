@@ -30,17 +30,9 @@ const titles: Record<string, { title: string; description: string }> = {
     title: 'Profesionales',
     description: 'Consulta doctores, especialidades y centros de atencion en un mismo lugar.',
   },
-  '/facilities': {
-    title: 'Centros',
-    description: 'La informacion de centros ahora vive integrada en Profesionales.',
-  },
   '/schedules': {
     title: 'Mi agenda de salud',
     description: 'Organiza tus citas, recordatorios y actividades del dia.',
-  },
-  '/medications': {
-    title: 'Medicamentos',
-    description: 'Consulta rapidamente los medicamentos indicados y su pauta actual.',
   },
 };
 
