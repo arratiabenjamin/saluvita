@@ -1,8 +1,21 @@
 import { ListAppointmentsQuery } from "../queries/list-appointments.query";
+import { ListAppointmentProfessionalsQuery } from "../queries/list-appointment-professionals.query";
 
 export type AppointmentListScope =
     | { mode: 'all' }
     | { mode: 'patients'; patientIds: string[] };
+
+export type AppointmentProfessionalSummary = {
+    id: string;
+    doctorName: string;
+    specialty: string | null;
+    facilityName: string | null;
+    facilityAddress: string | null;
+    totalAppointments: number;
+    lastAppointmentAt: Date | null;
+    lastCompletedAt: Date | null;
+    nextAppointmentAt: Date | null;
+};
 
 export interface AppointmentQueryService {
     listPaginated(query: ListAppointmentsQuery, scope: AppointmentListScope): Promise<{
@@ -32,5 +45,9 @@ export interface AppointmentQueryService {
             totalPages: number;
         };
     }>;
-}
 
+    listProfessionals(
+        query: ListAppointmentProfessionalsQuery,
+        scope: AppointmentListScope,
+    ): Promise<AppointmentProfessionalSummary[]>;
+}

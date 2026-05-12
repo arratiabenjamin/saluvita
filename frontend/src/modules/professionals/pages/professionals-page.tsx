@@ -1,9 +1,9 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  professionals as initialProfessionals,
   Professional,
-} from '@/modules/professionals/data';
+} from '@/modules/professionals/api/professionals-api';
+import { useProfessionals } from '@/modules/professionals/hooks/use-professionals';
 import { saveScheduledAppointment } from '@/modules/appointments/data';
 import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
 import { routes } from '@/shared/constants/routes';
@@ -32,22 +32,20 @@ const emptyFormState: AppointmentFormState = {
   notes: '',
 };
 
-function formatNextAppointment(date: string, time: string) {
-  const targetDate = new Date(`${date}T${time}:00`);
-
-  if (Number.isNaN(targetDate.getTime())) {
-    return `${date} · ${time}`;
-  }
-
-  const weekday = new Intl.DateTimeFormat('es-CL', { weekday: 'long' }).format(targetDate);
-  const formattedDay = new Intl.DateTimeFormat('es-CL', {
-    day: '2-digit',
-    month: 'short',
-  })
-    .format(targetDate)
+function formatIsoToHuman(iso: string | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const weekday = new Intl.DateTimeFormat('es-CL', { weekday: 'long' }).format(date);
+  const dayMonth = new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short' })
+    .format(date)
     .replace('.', '');
-
-  return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${formattedDay} · ${time}`;
+  const time = new Intl.DateTimeFormat('es-CL', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+  return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${dayMonth} · ${time}`;
 }
 
 function ProfessionalAppointmentForm({
@@ -193,7 +191,7 @@ function ProfessionalAppointmentForm({
 export function ProfessionalsPage() {
   const navigate = useNavigate();
   const { activeProfile } = usePatientProfile();
-  const [professionalItems, setProfessionalItems] = useState(initialProfessionals);
+  const { data: professionalItems, isLoading, isError } = useProfessionals();
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
   const [formValues, setFormValues] = useState<AppointmentFormState>(emptyFormState);
@@ -201,7 +199,8 @@ export function ProfessionalsPage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   const selectedProfessional = useMemo(
-    () => professionalItems.find((professional) => professional.id === selectedProfessionalId) ?? null,
+    () =>
+      professionalItems?.find((professional) => professional.id === selectedProfessionalId) ?? null,
     [professionalItems, selectedProfessionalId],
   );
 
@@ -213,10 +212,10 @@ export function ProfessionalsPage() {
   function openCreateAppointment(professional: Professional) {
     setSelectedProfessionalId(professional.id);
     setFormValues({
-      professional: professional.name,
-      specialty: professional.specialty,
-      center: professional.center,
-      address: professional.address,
+      professional: professional.doctorName,
+      specialty: professional.specialty ?? '',
+      center: professional.facilityName ?? '',
+      address: professional.facilityAddress ?? '',
       date: '',
       time: '',
       reason: '',
@@ -257,20 +256,12 @@ export function ProfessionalsPage() {
       notes: formValues.notes.trim(),
     });
 
-    if (selectedProfessional) {
-      const nextAppointmentLabel = formatNextAppointment(formValues.date, formValues.time);
-
-      setProfessionalItems((current) =>
-        current.map((professional) =>
-          professional.id === selectedProfessional.id
-            ? { ...professional, nextAppointment: nextAppointmentLabel }
-            : professional,
-        ),
-      );
-    }
-
     closeCreateAppointment();
-    setSuccessMessage('Cita agendada correctamente');
+    setSuccessMessage(
+      selectedProfessional
+        ? `Cita con ${selectedProfessional.doctorName} guardada correctamente`
+        : 'Cita guardada correctamente',
+    );
   }
 
   if (isCreatingAppointment) {
@@ -314,67 +305,107 @@ export function ProfessionalsPage() {
         </Card>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-2">
-        {professionalItems.map((professional) => (
-          <Card
-            key={professional.id}
-            className="border-slate-200 bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)]"
-          >
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-                    {professional.specialty}
-                  </span>
-                  <h2 className="mt-3 text-2xl font-bold text-text-main">{professional.name}</h2>
-                  <p className="mt-2 text-sm font-medium text-text-main">{professional.center}</p>
-                </div>
+      {isLoading ? (
+        <Card className="border-slate-200 bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)]">
+          <p className="text-sm text-text-muted">Cargando profesionales...</p>
+        </Card>
+      ) : isError ? (
+        <Card className="border-amber-200 bg-amber-50 p-6 shadow-[0_16px_32px_rgba(245,158,11,0.08)]">
+          <p className="text-sm font-semibold text-amber-700">No pudimos cargar tus profesionales</p>
+          <p className="mt-1 text-sm text-amber-800">
+            Reintenta en unos segundos. Si el problema persiste, contacta soporte.
+          </p>
+        </Card>
+      ) : !professionalItems || professionalItems.length === 0 ? (
+        <Card className="border-slate-200 bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)]">
+          <p className="text-sm font-semibold text-text-main">Sin profesionales registrados</p>
+          <p className="mt-1 text-sm text-text-muted">
+            Cuando tengas citas con doctores, aparecerán aquí automáticamente.
+          </p>
+        </Card>
+      ) : (
+        <section className="grid gap-5 xl:grid-cols-2">
+          {professionalItems.map((professional) => {
+            const nextLabel = formatIsoToHuman(professional.nextAppointmentAt);
+            const lastLabel = formatIsoToHuman(
+              professional.lastCompletedAt ?? professional.lastAppointmentAt,
+            );
 
-                <div className="rounded-[22px] bg-slate-50 px-4 py-3 text-sm text-text-muted">
-                  <p className="font-semibold text-text-main">Contacto</p>
-                  <p className="mt-1">{professional.contact}</p>
-                </div>
-              </div>
+            return (
+              <Card
+                key={professional.id}
+                className="border-slate-200 bg-white p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)]"
+              >
+                <div className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      {professional.specialty ? (
+                        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                          {professional.specialty}
+                        </span>
+                      ) : null}
+                      <h2 className="mt-3 text-2xl font-bold text-text-main">
+                        {professional.doctorName}
+                      </h2>
+                      {professional.facilityName ? (
+                        <p className="mt-2 text-sm font-medium text-text-main">
+                          {professional.facilityName}
+                        </p>
+                      ) : null}
+                    </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                    Centro y direccion
-                  </p>
-                  <p className="mt-3 text-sm font-semibold text-text-main">{professional.center}</p>
-                  <p className="mt-2 text-sm leading-6 text-text-muted">{professional.address}</p>
-                  <p className="mt-2 text-sm text-text-main">{professional.city}</p>
-                </div>
+                    <div className="rounded-[22px] bg-slate-50 px-4 py-3 text-sm text-text-muted">
+                      <p className="font-semibold text-text-main">Citas registradas</p>
+                      <p className="mt-1 text-lg font-extrabold text-text-main">
+                        {professional.totalAppointments}
+                      </p>
+                    </div>
+                  </div>
 
-                <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                    Seguimiento
-                  </p>
-                  <p className="mt-3 text-sm font-semibold text-text-main">Proxima cita</p>
-                  <p className="mt-1 text-sm leading-6 text-text-muted">
-                    {professional.nextAppointment ?? 'Sin cita agendada'}
-                  </p>
-                  <p className="mt-4 text-sm font-semibold text-text-main">Ultima atencion</p>
-                  <p className="mt-1 text-sm leading-6 text-text-muted">
-                    {professional.lastAttention ?? 'Sin atenciones previas registradas'}
-                  </p>
-                </div>
-              </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                        Centro y direccion
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-text-main">
+                        {professional.facilityName ?? 'Sin centro registrado'}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-text-muted">
+                        {professional.facilityAddress ?? 'Sin direccion registrada'}
+                      </p>
+                    </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 px-5"
-                  onClick={() => openCreateAppointment(professional)}
-                >
-                  Preparar proxima cita
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </section>
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                        Seguimiento
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-text-main">Proxima cita</p>
+                      <p className="mt-1 text-sm leading-6 text-text-muted">
+                        {nextLabel ?? 'Sin cita agendada'}
+                      </p>
+                      <p className="mt-4 text-sm font-semibold text-text-main">Ultima atencion</p>
+                      <p className="mt-1 text-sm leading-6 text-text-muted">
+                        {lastLabel ?? 'Sin atenciones previas registradas'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="min-h-11 px-5"
+                      onClick={() => openCreateAppointment(professional)}
+                    >
+                      Preparar proxima cita
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </section>
+      )}
     </div>
   );
 }
