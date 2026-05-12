@@ -1,14 +1,16 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
+import { useAppointments } from '@/modules/appointments/hooks/use-appointments';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import {
   AppointmentTab,
+  ClinicalEvent,
+  ClinicalEventStatus,
   contextualCopy,
   daySummaryMessages,
   EventIcon,
-  getEventsByTab,
   getGroupedTodayEvents,
   getGroupedWeekEvents,
   getMiniCalendarDays,
@@ -29,8 +31,118 @@ import { routes } from '@/shared/constants/routes';
 
 type EventListProps = {
   activeTab: AppointmentTab;
-  profileId: string;
+  events: ClinicalEvent[];
 };
+
+type ApiAppointmentRow = {
+  id: string;
+  patientId: string;
+  startsAt: string;
+  endsAt: string | null;
+  status: 'PLANNED' | 'COMPLETED' | 'CANCELLED';
+  reason: string | null;
+  facilityName: string | null;
+  facilityAddress: string | null;
+  doctorName: string | null;
+  specialty: string | null;
+};
+
+function capitalizeLabel(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getDayDifferenceFromDate(targetDate: Date) {
+  const today = new Date();
+  const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const selectedDay = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+  );
+
+  return Math.round((selectedDay.getTime() - currentDay.getTime()) / 86400000);
+}
+
+function getTabFromDayDifference(dayDifference: number): AppointmentTab {
+  if (dayDifference === 0) {
+    return 'today';
+  }
+
+  if (dayDifference > 0 && dayDifference < 7) {
+    return 'week';
+  }
+
+  return 'upcoming';
+}
+
+function getDayLabelForDate(targetDate: Date, dayDifference: number) {
+  if (dayDifference === 0) {
+    return 'Hoy';
+  }
+
+  if (dayDifference > 0 && dayDifference < 7) {
+    return capitalizeLabel(
+      new Intl.DateTimeFormat('es-CL', { weekday: 'long' }).format(targetDate),
+    );
+  }
+
+  const [day, month] = new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    month: 'short',
+  })
+    .format(targetDate)
+    .replace('.', '')
+    .split(' ');
+
+  return `${day} ${capitalizeLabel(month)}`;
+}
+
+function mapApiStatusToClinicalStatus(status: ApiAppointmentRow['status']): ClinicalEventStatus {
+  if (status === 'COMPLETED') {
+    return 'completada';
+  }
+  if (status === 'CANCELLED') {
+    return 'cancelada';
+  }
+  return 'pendiente';
+}
+
+function mapApiAppointmentToClinicalEvent(row: ApiAppointmentRow): ClinicalEvent {
+  const startsAtDate = new Date(row.startsAt);
+  const dayDifference = Number.isNaN(startsAtDate.getTime()) ? 0 : getDayDifferenceFromDate(startsAtDate);
+  const tab = getTabFromDayDifference(dayDifference);
+  const time = Number.isNaN(startsAtDate.getTime())
+    ? '--:--'
+    : new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(
+        startsAtDate,
+      );
+
+  const facility = [row.facilityName, row.facilityAddress].filter(Boolean).join(' · ');
+  const location = facility.trim() ? facility : 'Sin lugar informado';
+  const title = (row.reason && row.reason.trim()) || row.specialty || 'Cita medica';
+  const professional = (row.doctorName && row.doctorName.trim()) || 'Sin medico informado';
+
+  return {
+    id: row.id,
+    profileId: row.patientId,
+    tab,
+    dayLabel: Number.isNaN(startsAtDate.getTime())
+      ? 'Fecha'
+      : getDayLabelForDate(startsAtDate, dayDifference),
+    dateOrder: dayDifference,
+    time,
+    title,
+    location,
+    professional,
+    type: 'cita',
+    status: mapApiStatusToClinicalStatus(row.status),
+    actionLabel: 'Ver detalle',
+  };
+}
 
 type InstructionFormState = {
   registeredBy: MedicalInstructionAuthor | '';
@@ -134,9 +246,7 @@ function EventRow({
   );
 }
 
-function EventList({ activeTab, profileId }: EventListProps) {
-  const events = useMemo(() => getEventsByTab(activeTab, profileId), [activeTab, profileId]);
-
+function EventList({ activeTab, events }: EventListProps) {
   if (activeTab === 'today') {
     const groupedEvents = getGroupedTodayEvents(events);
 
@@ -196,11 +306,8 @@ function EventList({ activeTab, profileId }: EventListProps) {
   );
 }
 
-function NextActivityCard({ activeTab, profileId }: EventListProps) {
-  const nextEvent = useMemo(
-    () => getNextEvent(getEventsByTab(activeTab, profileId)),
-    [activeTab, profileId],
-  );
+function NextActivityCard({ events }: Pick<EventListProps, 'events'>) {
+  const nextEvent = useMemo(() => getNextEvent(events), [events]);
 
   if (!nextEvent) {
     return null;
@@ -260,7 +367,7 @@ function NextActivityCard({ activeTab, profileId }: EventListProps) {
   );
 }
 
-function DaySummaryCard({ activeTab }: EventListProps) {
+function DaySummaryCard({ activeTab }: { activeTab: AppointmentTab }) {
   const summaryItems = summaryConfig[activeTab];
 
   return (
@@ -751,6 +858,7 @@ function CreateInstructionView({
 
 export function AppointmentsPage() {
   const { activeProfile } = usePatientProfile();
+  const { data, isLoading, isError } = useAppointments({ page: 1, limit: 20 });
   const [activeTab, setActiveTab] = useState<AppointmentTab>('today');
   const [instructionItems, setInstructionItems] = useState<MedicalInstruction[]>(
     () => getMedicalInstructions(activeProfile.id),
@@ -763,6 +871,22 @@ export function AppointmentsPage() {
   useEffect(() => {
     setInstructionItems(getMedicalInstructions(activeProfile.id));
   }, [activeProfile.id]);
+
+  const clinicalEventsFromApi = useMemo(() => {
+    if (!data?.data) {
+      return [];
+    }
+
+    return data.data.map((row) => mapApiAppointmentToClinicalEvent(row as ApiAppointmentRow));
+  }, [data]);
+
+  const sortedTabEvents = useMemo(
+    () =>
+      clinicalEventsFromApi
+        .filter((event) => event.tab === activeTab)
+        .sort((a, b) => a.dateOrder - b.dateOrder || a.time.localeCompare(b.time)),
+    [clinicalEventsFromApi, activeTab],
+  );
 
   function handleAddInstruction(instruction: Omit<MedicalInstruction, 'id'>) {
     const nextInstruction = {
@@ -913,26 +1037,38 @@ export function AppointmentsPage() {
             </div>
           ) : null}
 
-          <NextActivityCard activeTab={activeTab} profileId={activeProfile.id} />
-          <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-blue-600">Agenda clinica</p>
-                <h2 className="mt-2 text-2xl font-bold text-text-main">Tus citas y examenes</h2>
-              </div>
-              <p className="text-sm text-text-muted">
-                {activeTab === 'today'
-                  ? 'Ordenada por bloques del dia.'
-                  : activeTab === 'week'
-                    ? 'Agrupada para seguir cada jornada.'
-                    : 'Vista cronologica de tus proximas atenciones.'}
-              </p>
-            </div>
+          {isLoading ? (
+            <p className="text-sm text-text-muted">Cargando citas...</p>
+          ) : isError ? (
+            <p className="text-sm text-text-muted">Error al cargar citas</p>
+          ) : (
+            <>
+              <NextActivityCard events={sortedTabEvents} />
+              <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-600">Agenda clinica</p>
+                    <h2 className="mt-2 text-2xl font-bold text-text-main">Tus citas y examenes</h2>
+                  </div>
+                  <p className="text-sm text-text-muted">
+                    {activeTab === 'today'
+                      ? 'Ordenada por bloques del dia.'
+                      : activeTab === 'week'
+                        ? 'Agrupada para seguir cada jornada.'
+                        : 'Vista cronologica de tus proximas atenciones.'}
+                  </p>
+                </div>
 
-            <div className="mt-6">
-              <EventList activeTab={activeTab} profileId={activeProfile.id} />
-            </div>
-          </Card>
+                <div className="mt-6">
+                  {sortedTabEvents.length === 0 ? (
+                    <p className="text-sm text-text-muted">No hay citas disponibles</p>
+                  ) : (
+                    <EventList activeTab={activeTab} events={sortedTabEvents} />
+                  )}
+                </div>
+              </Card>
+            </>
+          )}
 
           <MedicalInstructionsSection
             instructions={instructionItems}
@@ -941,10 +1077,8 @@ export function AppointmentsPage() {
         </div>
 
         <aside className="space-y-4">
-          <DaySummaryCard activeTab={activeTab} profileId={activeProfile.id} />
+          <DaySummaryCard activeTab={activeTab} />
           <MiniCalendarCard profileId={activeProfile.id} />
-          <PreparationCard />
-          <QuickActionsCard />
         </aside>
       </section>
     </div>
