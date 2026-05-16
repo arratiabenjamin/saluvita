@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
-import { useAppointments } from '@/modules/appointments/hooks/use-appointments';
+import { useAppointments, useCreateAppointment } from '@/modules/appointments/hooks/use-appointments';
+import { AppointmentActionsModal } from '@/modules/appointments/components/appointment-actions-modal';
+import { useAuth } from '@/modules/auth/hooks/use-auth';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import {
@@ -32,6 +34,7 @@ import { routes } from '@/shared/constants/routes';
 type EventListProps = {
   activeTab: AppointmentTab;
   events: ClinicalEvent[];
+  onSelectEvent?: (id: string) => void;
 };
 
 type ApiAppointmentRow = {
@@ -183,6 +186,7 @@ const registeredByLabels: Record<MedicalInstructionAuthor, string> = {
 };
 
 function EventRow({
+  id,
   time,
   title,
   location,
@@ -190,7 +194,9 @@ function EventRow({
   type,
   status,
   actionLabel,
+  onSelect,
 }: {
+  id: string;
   time: string;
   title: string;
   location: string;
@@ -198,6 +204,7 @@ function EventRow({
   type: keyof typeof typeStyles;
   status: keyof typeof statusStyles;
   actionLabel: string;
+  onSelect?: (id: string) => void;
 }) {
   const typeStyle = typeStyles[type];
 
@@ -237,7 +244,11 @@ function EventRow({
           >
             {status}
           </span>
-          <Button variant="secondary" className="min-h-11 px-5">
+          <Button
+            variant="secondary"
+            className="min-h-11 px-5"
+            onClick={onSelect ? () => onSelect(id) : undefined}
+          >
             {actionLabel}
           </Button>
         </div>
@@ -246,7 +257,7 @@ function EventRow({
   );
 }
 
-function EventList({ activeTab, events }: EventListProps) {
+function EventList({ activeTab, events, onSelectEvent }: EventListProps) {
   if (activeTab === 'today') {
     const groupedEvents = getGroupedTodayEvents(events);
 
@@ -263,7 +274,7 @@ function EventList({ activeTab, events }: EventListProps) {
             </div>
             <div className="space-y-4">
               {group.items.map((event) => (
-                <EventRow key={event.id} {...event} />
+                <EventRow key={event.id} {...event} onSelect={onSelectEvent} />
               ))}
             </div>
           </section>
@@ -288,7 +299,7 @@ function EventList({ activeTab, events }: EventListProps) {
             </div>
             <div className="space-y-4">
               {group.items.map((event) => (
-                <EventRow key={event.id} {...event} />
+                <EventRow key={event.id} {...event} onSelect={onSelectEvent} />
               ))}
             </div>
           </section>
@@ -300,13 +311,16 @@ function EventList({ activeTab, events }: EventListProps) {
   return (
     <div className="space-y-4">
       {events.map((event) => (
-        <EventRow key={event.id} {...event} />
+        <EventRow key={event.id} {...event} onSelect={onSelectEvent} />
       ))}
     </div>
   );
 }
 
-function NextActivityCard({ events }: Pick<EventListProps, 'events'>) {
+function NextActivityCard({
+  events,
+  onSelect,
+}: Pick<EventListProps, 'events'> & { onSelect?: (id: string) => void }) {
   const nextEvent = useMemo(() => getNextEvent(events), [events]);
 
   if (!nextEvent) {
@@ -360,7 +374,12 @@ function NextActivityCard({ events }: Pick<EventListProps, 'events'>) {
           >
             {nextEvent.status}
           </span>
-          <Button className="min-h-11 w-full px-5">{nextEvent.actionLabel}</Button>
+          <Button
+            className="min-h-11 w-full px-5"
+            onClick={onSelect ? () => onSelect(nextEvent.id) : undefined}
+          >
+            {nextEvent.actionLabel}
+          </Button>
         </div>
       </div>
     </Card>
@@ -394,8 +413,8 @@ function DaySummaryCard({ activeTab }: { activeTab: AppointmentTab }) {
   );
 }
 
-function MiniCalendarCard({ profileId }: { profileId: string }) {
-  const days = getMiniCalendarDays(profileId);
+function MiniCalendarCard({ events }: { events: ClinicalEvent[] }) {
+  const days = getMiniCalendarDays(events);
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
@@ -856,8 +875,195 @@ function CreateInstructionView({
   );
 }
 
+type NewAppointmentFormState = {
+  date: string;
+  time: string;
+  doctorName: string;
+  specialty: string;
+  facilityName: string;
+  reason: string;
+};
+
+const defaultNewAppointmentForm: NewAppointmentFormState = {
+  date: '',
+  time: '',
+  doctorName: '',
+  specialty: '',
+  facilityName: '',
+  reason: '',
+};
+
+function NewAppointmentModal({
+  patientId,
+  isOpen,
+  onClose,
+}: {
+  patientId: string;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const createMutation = useCreateAppointment();
+  const [values, setValues] = useState<NewAppointmentFormState>(defaultNewAppointmentForm);
+  const [formError, setFormError] = useState('');
+
+  function handleChange<K extends keyof NewAppointmentFormState>(
+    field: K,
+    value: NewAppointmentFormState[K],
+  ) {
+    setValues((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError('');
+
+    if (!values.date || !values.time) {
+      setFormError('Fecha y hora son obligatorias.');
+      return;
+    }
+    if (!values.doctorName.trim()) {
+      setFormError('El nombre del profesional es obligatorio.');
+      return;
+    }
+
+    const startsAt = `${values.date}T${values.time}:00`;
+
+    try {
+      await createMutation.mutateAsync({
+        patientId,
+        startsAt,
+        doctorName: values.doctorName.trim() || undefined,
+        specialty: values.specialty.trim() || undefined,
+        facilityName: values.facilityName.trim() || undefined,
+        reason: values.reason.trim() || undefined,
+      });
+      setValues(defaultNewAppointmentForm);
+      onClose();
+    } catch {
+      setFormError('No pudimos crear la cita. Intentá nuevamente.');
+    }
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 px-4 pb-0 pt-6 sm:items-center sm:pb-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Nueva cita"
+        className="w-full max-w-xl overflow-hidden rounded-t-[32px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.22)] sm:rounded-[32px]"
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5">
+          <div>
+            <p className="text-sm font-semibold text-blue-600">Nueva cita</p>
+            <h2 className="mt-1 text-2xl font-bold text-text-main">Agendar cita medica</h2>
+          </div>
+          <button
+            type="button"
+            aria-label="Cerrar"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-text-muted hover:bg-slate-50"
+            onClick={onClose}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form className="space-y-5 px-6 py-6" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-text-main">Fecha *</span>
+              <input
+                type="date"
+                value={values.date}
+                onChange={(e) => handleChange('date', e.target.value)}
+                required
+                className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-text-main">Hora *</span>
+              <input
+                type="time"
+                value={values.time}
+                onChange={(e) => handleChange('time', e.target.value)}
+                required
+                className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+              />
+            </label>
+          </div>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-text-main">Profesional *</span>
+            <input
+              type="text"
+              value={values.doctorName}
+              onChange={(e) => handleChange('doctorName', e.target.value)}
+              placeholder="Ej. Dra. Javiera Molina"
+              className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+            />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-text-main">Especialidad</span>
+            <input
+              type="text"
+              value={values.specialty}
+              onChange={(e) => handleChange('specialty', e.target.value)}
+              placeholder="Ej. Cardiología"
+              className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+            />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-text-main">Centro médico</span>
+            <input
+              type="text"
+              value={values.facilityName}
+              onChange={(e) => handleChange('facilityName', e.target.value)}
+              placeholder="Ej. Clínica Central"
+              className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+            />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-text-main">Motivo de la cita</span>
+            <input
+              type="text"
+              value={values.reason}
+              onChange={(e) => handleChange('reason', e.target.value)}
+              placeholder="Ej. Control de rutina, revisión de exámenes..."
+              className="min-h-11 w-full rounded-[18px] border border-slate-200 bg-white px-4 text-sm text-text-main outline-none transition focus:border-blue-400"
+            />
+          </label>
+
+          {formError ? (
+            <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+              {formError}
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" className="min-h-11 px-5" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="min-h-11 px-5" disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Agendando...' : 'Agendar cita'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function AppointmentsPage() {
   const { activeProfile } = usePatientProfile();
+  const { session } = useAuth();
   const { data, isLoading, isError } = useAppointments({ page: 1, limit: 20 });
   const [activeTab, setActiveTab] = useState<AppointmentTab>('today');
   const [instructionItems, setInstructionItems] = useState<MedicalInstruction[]>(
@@ -867,6 +1073,8 @@ export function AppointmentsPage() {
   const [isCreatingInstruction, setIsCreatingInstruction] = useState(false);
   const [formValues, setFormValues] = useState<InstructionFormState>(defaultInstructionForm);
   const [formError, setFormError] = useState('');
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
 
   useEffect(() => {
     setInstructionItems(getMedicalInstructions(activeProfile.id));
@@ -1003,11 +1211,16 @@ export function AppointmentsPage() {
           </div>
 
           <div className="flex flex-col items-start gap-3 lg:items-end">
-            <Link to={routes.dashboard}>
-              <Button variant="secondary" className="min-h-11 px-5">
-                Volver al dashboard
+            <div className="flex flex-wrap items-center gap-3">
+              <Link to={routes.dashboard}>
+                <Button variant="secondary" className="min-h-11 px-5">
+                  Volver al dashboard
+                </Button>
+              </Link>
+              <Button className="min-h-11 px-5" onClick={() => setIsNewAppointmentOpen(true)}>
+                Agendar nueva cita
               </Button>
-            </Link>
+            </div>
 
             <div className="flex flex-wrap gap-2 rounded-[24px] bg-slate-50 p-2">
               {tabs.map((tab) => (
@@ -1043,7 +1256,7 @@ export function AppointmentsPage() {
             <p className="text-sm text-text-muted">Error al cargar citas</p>
           ) : (
             <>
-              <NextActivityCard events={sortedTabEvents} />
+              <NextActivityCard events={sortedTabEvents} onSelect={setSelectedAppointmentId} />
               <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
@@ -1063,7 +1276,11 @@ export function AppointmentsPage() {
                   {sortedTabEvents.length === 0 ? (
                     <p className="text-sm text-text-muted">No hay citas disponibles</p>
                   ) : (
-                    <EventList activeTab={activeTab} events={sortedTabEvents} />
+                    <EventList
+                      activeTab={activeTab}
+                      events={sortedTabEvents}
+                      onSelectEvent={setSelectedAppointmentId}
+                    />
                   )}
                 </div>
               </Card>
@@ -1078,9 +1295,20 @@ export function AppointmentsPage() {
 
         <aside className="space-y-4">
           <DaySummaryCard activeTab={activeTab} />
-          <MiniCalendarCard profileId={activeProfile.id} />
+          <MiniCalendarCard events={clinicalEventsFromApi} />
         </aside>
       </section>
+
+      <AppointmentActionsModal
+        appointmentId={selectedAppointmentId}
+        onClose={() => setSelectedAppointmentId(null)}
+      />
+
+      <NewAppointmentModal
+        patientId={session?.user?.patientId ?? activeProfile.id}
+        isOpen={isNewAppointmentOpen}
+        onClose={() => setIsNewAppointmentOpen(false)}
+      />
     </div>
   );
 }

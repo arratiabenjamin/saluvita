@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '@/modules/auth/hooks/use-auth';
 import { routes } from '@/shared/constants/routes';
@@ -102,8 +102,10 @@ export function LoginForm() {
         </div>
 
         <p className="text-center text-sm leading-6 text-text-muted">
-          Si tienes problemas para ingresar, contacta al equipo de soporte de tu
-          centro o cuidador responsable.
+          ¿No tenés cuenta aún?{' '}
+          <Link to={routes.register} className="font-semibold text-primary-dark hover:underline">
+            Registrate gratis
+          </Link>
         </p>
       </form>
     </Card>

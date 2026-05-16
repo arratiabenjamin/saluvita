@@ -3,6 +3,7 @@ import { PrismaModule } from "../../shared/prisma/prisma.module";
 import { AuthModule } from "../auth/auth.module";
 import { MedicalHistoryModule } from "../medical-history/medical-history.module";
 import { CreateAppointmentController } from "./presentation/controllers/create-appointment.controller";
+import { ListAppointmentProfessionalsController } from "./presentation/controllers/list-appointment-professionals.controller";
 import { GetAppointmentByIdController } from "./presentation/controllers/get-appointment-by-id.controller";
 import { ListAppointmentsController } from "./presentation/controllers/list-appointments.controller";
 import { UpdateAppointmentController } from "./presentation/controllers/update-appointment.controller";
@@ -11,6 +12,7 @@ import { CancelAppointmentController } from "./presentation/controllers/cancel-a
 import { CreateAppointmentUseCase } from "./application/use-cases/create-appointment.use-case";
 import { GetAppointmentByIdUseCase } from "./application/use-cases/get-appointment-by-id.use-case";
 import { ListAppointmentsUseCase } from "./application/use-cases/list-appointments.use-case";
+import { ListAppointmentProfessionalsUseCase } from "./application/use-cases/list-appointment-professionals.use-case";
 import { UpdateAppointmentUseCase } from "./application/use-cases/update-appointment.use-case";
 import { CompleteAppointmentUseCase } from "./application/use-cases/complete-appointment.use-case";
 import { CancelAppointmentUseCase } from "./application/use-cases/cancel-appointment.use-case";
@@ -22,8 +24,9 @@ import { PrismaAppointmentAccessService } from "./infrastructure/access/prisma-a
     imports: [PrismaModule, AuthModule, MedicalHistoryModule],
     controllers: [
         CreateAppointmentController,
-        GetAppointmentByIdController,
         ListAppointmentsController,
+        ListAppointmentProfessionalsController,
+        GetAppointmentByIdController,
         UpdateAppointmentController,
         CompleteAppointmentController,
         CancelAppointmentController,
@@ -38,10 +41,10 @@ import { PrismaAppointmentAccessService } from "./infrastructure/access/prisma-a
         CreateAppointmentUseCase,
         GetAppointmentByIdUseCase,
         ListAppointmentsUseCase,
+        ListAppointmentProfessionalsUseCase,
         UpdateAppointmentUseCase,
         CompleteAppointmentUseCase,
         CancelAppointmentUseCase,
     ],
 })
 export class AppointmentsModule {}
-

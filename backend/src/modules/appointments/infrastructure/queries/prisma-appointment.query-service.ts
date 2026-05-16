@@ -1,7 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../../shared/prisma/prisma.service";
-import type { AppointmentListScope, AppointmentQueryService } from "../../application/ports/appointment-query.service";
+import type {
+    AppointmentListScope,
+    AppointmentProfessionalSummary,
+    AppointmentQueryService,
+} from "../../application/ports/appointment-query.service";
 import { ListAppointmentsQuery } from "../../application/queries/list-appointments.query";
+import { ListAppointmentProfessionalsQuery } from "../../application/queries/list-appointment-professionals.query";
 
 @Injectable()
 export class PrismaAppointmentQueryService implements AppointmentQueryService {
@@ -86,5 +91,92 @@ export class PrismaAppointmentQueryService implements AppointmentQueryService {
             },
         };
     }
-}
 
+    async listProfessionals(
+        query: ListAppointmentProfessionalsQuery,
+        scope: AppointmentListScope,
+    ): Promise<AppointmentProfessionalSummary[]> {
+        const where: any = {
+            doctorName: { not: null },
+        };
+
+        if (scope.mode === 'patients') {
+            if (!scope.patientIds.length) return [];
+            where.patientId = { in: scope.patientIds };
+        }
+
+        if (query.patientId) {
+            where.patientId = scope.mode === 'all'
+                ? query.patientId
+                : { in: scope.patientIds.filter((id) => id === query.patientId) };
+        }
+
+        const items = await this.prisma.appointment.findMany({
+            where,
+            orderBy: [{ startsAt: 'desc' }],
+            select: {
+                doctorName: true,
+                specialty: true,
+                facilityName: true,
+                facilityAddress: true,
+                startsAt: true,
+                status: true,
+            },
+        });
+
+        const now = new Date();
+        const grouped = new Map<string, AppointmentProfessionalSummary>();
+
+        for (const item of items) {
+            if (!item.doctorName) continue;
+
+            const key = `${item.doctorName}|${item.specialty ?? ''}`;
+            const existing = grouped.get(key);
+
+            if (!existing) {
+                grouped.set(key, {
+                    id: key,
+                    doctorName: item.doctorName,
+                    specialty: item.specialty,
+                    facilityName: item.facilityName,
+                    facilityAddress: item.facilityAddress,
+                    totalAppointments: 1,
+                    lastAppointmentAt: item.startsAt,
+                    lastCompletedAt: item.status === 'COMPLETED' ? item.startsAt : null,
+                    nextAppointmentAt:
+                        item.status === 'PLANNED' && item.startsAt >= now ? item.startsAt : null,
+                });
+                continue;
+            }
+
+            existing.totalAppointments += 1;
+
+            if (!existing.facilityName && item.facilityName) {
+                existing.facilityName = item.facilityName;
+                existing.facilityAddress = item.facilityAddress;
+            }
+
+            if (!existing.lastAppointmentAt || item.startsAt > existing.lastAppointmentAt) {
+                existing.lastAppointmentAt = item.startsAt;
+            }
+
+            if (item.status === 'COMPLETED') {
+                if (!existing.lastCompletedAt || item.startsAt > existing.lastCompletedAt) {
+                    existing.lastCompletedAt = item.startsAt;
+                }
+            }
+
+            if (item.status === 'PLANNED' && item.startsAt >= now) {
+                if (!existing.nextAppointmentAt || item.startsAt < existing.nextAppointmentAt) {
+                    existing.nextAppointmentAt = item.startsAt;
+                }
+            }
+        }
+
+        return Array.from(grouped.values()).sort((a, b) => {
+            const ta = a.lastAppointmentAt?.getTime() ?? 0;
+            const tb = b.lastAppointmentAt?.getTime() ?? 0;
+            return tb - ta;
+        });
+    }
+}

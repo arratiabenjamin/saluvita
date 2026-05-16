@@ -45,15 +45,6 @@ export function NavigationIcon({ name, className }: NavigationIconProps) {
     );
   }
 
-  if (name === 'medications') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-        <path d="M8 3h8l2 2-8 8-4-4 8-8Z" />
-        <path d="m7 14 3 3-4 4-3-3 4-4Z" />
-      </svg>
-    );
-  }
-
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
       <circle cx="12" cy="12" r="9" />
