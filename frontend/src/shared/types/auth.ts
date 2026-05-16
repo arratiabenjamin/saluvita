@@ -6,6 +6,7 @@ export type User = {
   lastName: string;
   email: string;
   role: UserRole;
+  patientId: string | null;
 };
 
 export type AuthSession = {
@@ -17,6 +18,19 @@ export type AuthSession = {
 export type LoginPayload = {
   email: string;
   password: string;
+};
+
+export type DocumentType = 'RUT' | 'DNI' | 'PASSPORT' | 'CEDULA';
+
+export type RegisterPayload = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  birthDate?: string;
+  phone?: string;
 };
 
 export type AuthContextValue = {

@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { primaryProfileId } from '@/modules/patient-profiles/data';
 
 export type AppointmentTab = 'today' | 'week' | 'upcoming';
 export type ClinicalEventType = 'cita' | 'examen';
@@ -82,120 +81,6 @@ export const tabs: Array<{ id: AppointmentTab; label: string }> = [
   { id: 'upcoming', label: 'Proximas' },
 ];
 
-export const clinicalEvents: ClinicalEvent[] = [
-  {
-    id: 'a1',
-    profileId: primaryProfileId,
-    tab: 'today',
-    dayLabel: 'Hoy',
-    dateOrder: 1,
-    time: '10:30',
-    title: 'Control de cardiologia',
-    location: 'Clinica Central · Piso 2',
-    professional: 'Dra. Javiera Molina',
-    type: 'cita',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
-  },
-  {
-    id: 'a2',
-    profileId: primaryProfileId,
-    tab: 'today',
-    dayLabel: 'Hoy',
-    dateOrder: 1,
-    time: '18:30',
-    title: 'Revision de orden para examen',
-    location: 'Portal de salud',
-    professional: 'Centro medico',
-    type: 'examen',
-    status: 'pendiente',
-    actionLabel: 'Ver preparacion',
-  },
-  {
-    id: 'a3',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Martes',
-    dateOrder: 2,
-    time: '10:30',
-    title: 'Control de cardiologia',
-    location: 'Clinica Central · Piso 2',
-    professional: 'Dra. Javiera Molina',
-    type: 'cita',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
-  },
-  {
-    id: 'a4',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Miercoles',
-    dateOrder: 3,
-    time: '09:00',
-    title: 'Examen de sangre',
-    location: 'Laboratorio Vida',
-    professional: 'Equipo de laboratorio',
-    type: 'examen',
-    status: 'pendiente',
-    actionLabel: 'Ver preparacion',
-  },
-  {
-    id: 'a5',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Jueves',
-    dateOrder: 4,
-    time: '15:00',
-    title: 'Control con medicina interna',
-    location: 'Centro Medico Norte',
-    professional: 'Dr. Tomas Herrera',
-    type: 'cita',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
-  },
-  {
-    id: 'a6',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '02 Jul',
-    dateOrder: 10,
-    time: '11:15',
-    title: 'Control de medicina interna',
-    location: 'Centro Medico Norte',
-    professional: 'Dr. Tomas Herrera',
-    type: 'cita',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
-  },
-  {
-    id: 'a7',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '08 Jul',
-    dateOrder: 12,
-    time: '12:00',
-    title: 'Entrega de resultados',
-    location: 'Portal de salud',
-    professional: 'Laboratorio Vida',
-    type: 'examen',
-    status: 'completada',
-    actionLabel: 'Revisar',
-  },
-  {
-    id: 'a8',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '12 Jul',
-    dateOrder: 13,
-    time: '17:00',
-    title: 'Ecografia abdominal',
-    location: 'Imagenes Clinica Central',
-    professional: 'Unidad de imagenes',
-    type: 'examen',
-    status: 'pendiente',
-    actionLabel: 'Ver preparacion',
-  },
-];
 
 export const typeStyles: Record<
   ClinicalEventType,
@@ -347,78 +232,6 @@ export const medicalInstructionStatusStyles: Record<MedicalInstructionStatus, st
   Completado: 'bg-emerald-50 text-emerald-700',
 };
 
-export const medicalInstructions: MedicalInstruction[] = [
-  {
-    id: 'mi-1',
-    profileId: primaryProfileId,
-    registeredBy: 'doctor',
-    date: '28 Abr 2026',
-    professional: 'Dra. Javiera Molina',
-    specialty: 'Cardiologia',
-    relatedEvent: 'Control de cardiologia',
-    clinicalSummary:
-      'Se mantiene controlado el cuadro general. Se recomienda reforzar seguimiento de presion arterial y sintomas de fatiga.',
-    doctorInstructions:
-      'Continuar tratamiento actual, registrar presion por 7 dias y acudir con resultados al siguiente control.',
-    exams: ['Electrocardiograma revisado', 'Perfil lipidico solicitado'],
-    patientActions: [
-      'Tomar la medicacion segun horario indicado',
-      'Registrar presion arterial manana y noche',
-      'Agendar perfil lipidico antes del proximo control',
-    ],
-    medication: {
-      name: 'Losartan',
-      dose: '1 comprimido',
-      frequencyHours: 'Cada 12 horas',
-    },
-    status: 'En proceso',
-  },
-  {
-    id: 'mi-2',
-    profileId: primaryProfileId,
-    registeredBy: 'doctor',
-    date: '24 Abr 2026',
-    professional: 'Dr. Tomas Herrera',
-    specialty: 'Medicina interna',
-    relatedEvent: 'Revision de resultados',
-    clinicalSummary:
-      'Los resultados generales fueron estables. Solo se sugiere reforzar hidratacion y revisar tolerancia digestiva.',
-    doctorInstructions:
-      'Aumentar consumo de agua durante la jornada, mantener dieta liviana y repetir examen en un mes.',
-    exams: ['Examen de sangre revisado', 'Control metabolico solicitado'],
-    patientActions: [
-      'Mantener hidratacion diaria',
-      'Solicitar control metabolico para el proximo mes',
-      'Anotar molestias digestivas si reaparecen',
-    ],
-    medication: {
-      name: 'Omeprazol',
-      dose: '1 capsula',
-      frequencyHours: 'Cada 24 horas',
-    },
-    status: 'Pendiente',
-  },
-  {
-    id: 'mi-3',
-    profileId: primaryProfileId,
-    registeredBy: 'acompanante',
-    date: '18 Abr 2026',
-    professional: 'Equipo de laboratorio',
-    specialty: 'Laboratorio clinico',
-    relatedEvent: 'Examen de sangre',
-    clinicalSummary:
-      'El examen fue realizado sin incidentes y la preparacion previa fue adecuada para el estudio solicitado.',
-    doctorInstructions:
-      'Esperar publicacion de resultados, conservar orden medica y asistir a control para interpretacion clinica.',
-    exams: ['Examen de sangre completado'],
-    patientActions: [
-      'Revisar portal de salud para resultados',
-      'Llevar resultados impresos o digitales al control',
-    ],
-    medication: null,
-    status: 'Completado',
-  },
-];
 
 function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -599,19 +412,6 @@ function mapStoredAppointmentToClinicalEvent(
   };
 }
 
-function getStoredScheduledClinicalEvents(activeProfileId?: string) {
-  return readStoredScheduledAppointments()
-    .map(mapStoredAppointmentToClinicalEvent)
-    .filter((event) => (event ? matchesProfile(event.profileId, activeProfileId) : false))
-    .filter((event): event is ClinicalEvent => Boolean(event));
-}
-
-function getAllClinicalEvents(activeProfileId?: string) {
-  return [
-    ...clinicalEvents.filter((event) => matchesProfile(event.profileId, activeProfileId)),
-    ...getStoredScheduledClinicalEvents(activeProfileId),
-  ];
-}
 
 export function saveScheduledAppointment(appointment: ScheduledAppointmentDraft) {
   const nextAppointment: StoredScheduledAppointment = {
@@ -633,14 +433,9 @@ export function saveScheduledAppointment(appointment: ScheduledAppointmentDraft)
 }
 
 export function getMedicalInstructions(activeProfileId?: string) {
-  return [
-    ...readStoredMedicalInstructions().filter((instruction) =>
-      matchesProfile(instruction.profileId, activeProfileId),
-    ),
-    ...medicalInstructions.filter((instruction) =>
-      matchesProfile(instruction.profileId, activeProfileId),
-    ),
-  ];
+  return readStoredMedicalInstructions().filter((instruction) =>
+    matchesProfile(instruction.profileId, activeProfileId),
+  );
 }
 
 export function saveMedicalInstruction(instruction: MedicalInstruction) {
@@ -670,7 +465,9 @@ export function getMedicationSummaryItems(activeProfileId?: string) {
 }
 
 export function getEventsByTab(activeTab: AppointmentTab, activeProfileId?: string) {
-  return getAllClinicalEvents(activeProfileId)
+  return readStoredScheduledAppointments()
+    .map(mapStoredAppointmentToClinicalEvent)
+    .filter((event): event is ClinicalEvent => event !== null && matchesProfile(event.profileId, activeProfileId))
     .filter((event) => event.tab === activeTab)
     .sort((a, b) => a.dateOrder - b.dateOrder || a.time.localeCompare(b.time));
 }
@@ -714,22 +511,33 @@ export function getGroupedTodayEvents(events: ClinicalEvent[]) {
     .filter((group) => group.items.length > 0);
 }
 
-export function getMiniCalendarDays(activeProfileId?: string) {
-  return [
-    { id: 'mon', label: 'Lun', dateNumber: 15, isToday: false },
-    { id: 'tue', label: 'Mar', dateNumber: 16, isToday: true },
-    { id: 'wed', label: 'Mie', dateNumber: 17, isToday: false },
-    { id: 'thu', label: 'Jue', dateNumber: 18, isToday: false },
-    { id: 'fri', label: 'Vie', dateNumber: 19, isToday: false },
-    { id: 'sat', label: 'Sab', dateNumber: 20, isToday: false },
-    { id: 'sun', label: 'Dom', dateNumber: 21, isToday: false },
-  ].map((day, index) => {
-    const eventsCount = getAllClinicalEvents(activeProfileId).filter(
-      (event) => event.dateOrder === index + 1,
-    ).length;
+export function getMiniCalendarDays(events?: Array<{ dateOrder: number }>) {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const DAYS = [
+    { id: 'mon', label: 'Lun', offset: 0 },
+    { id: 'tue', label: 'Mar', offset: 1 },
+    { id: 'wed', label: 'Mie', offset: 2 },
+    { id: 'thu', label: 'Jue', offset: 3 },
+    { id: 'fri', label: 'Vie', offset: 4 },
+    { id: 'sat', label: 'Sab', offset: 5 },
+    { id: 'sun', label: 'Dom', offset: 6 },
+  ];
+
+  return DAYS.map((day) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + mondayOffset + day.offset);
+    const dayDiff = mondayOffset + day.offset;
+    const eventsCount = events
+      ? events.filter((e) => e.dateOrder === dayDiff).length
+      : 0;
 
     return {
-      ...day,
+      id: day.id,
+      label: day.label,
+      dateNumber: d.getDate(),
+      isToday: dayDiff === 0,
       eventsCount,
       hasEvents: eventsCount > 0,
     };

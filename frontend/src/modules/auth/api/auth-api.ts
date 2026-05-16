@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/lib/axios';
 import { getStoredRefreshToken } from '@/shared/lib/storage';
-import { AuthSession, LoginPayload, User, UserRole } from '@/shared/types/auth';
+import { AuthSession, LoginPayload, RegisterPayload, User, UserRole } from '@/shared/types/auth';
 
 type BackendUser = {
   id: string;
@@ -28,6 +28,7 @@ const demoUser: User = {
   lastName: 'Molina',
   email: 'demo@bmbsalud.cl',
   role: 'CAREGIVER',
+  patientId: null,
 };
 
 const DEMO_CREDENTIALS = {
@@ -64,6 +65,7 @@ function mapUser(backendUser: BackendUser): User {
     firstName: backendUser.firstName,
     lastName: backendUser.lastName,
     role: pickRole(backendUser),
+    patientId: backendUser.patientId ?? null,
   };
 }
 
@@ -138,6 +140,10 @@ export const authApi = {
 
       return null;
     }
+  },
+
+  async register(payload: RegisterPayload): Promise<void> {
+    await apiClient.post('/auth/register', payload);
   },
 
   async logout() {

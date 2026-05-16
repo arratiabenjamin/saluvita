@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
-import { getMedicationSummaryItems } from '@/modules/appointments/data';
+import { useReminders } from '@/modules/reminders/hooks/use-reminders';
 import { useSchedulesOverview } from '@/modules/schedules/hooks/use-schedules-overview';
+import { useUpsertReminderLog } from '@/modules/reminders/hooks/use-reminders';
 import {
   ActivityStatus,
   ActivityType,
@@ -75,6 +76,8 @@ function mapApiEventToHealthEvent(event: SchedulesApiEvent, tab: ScheduleTab): H
     type: mapApiTypeToActivityType(event.type),
     status: mapApiStatusToActivityStatus(event.status),
     actionLabel: event.actionLabel,
+    reminderId: event.reminderId,
+    scheduledFor: event.scheduledFor,
   };
 }
 
@@ -83,18 +86,23 @@ type EventListProps = {
   profileId: string;
   remoteEvents?: HealthEvent[];
   remoteNext?: HealthEvent | null;
+  onMarkLog?: (
+    reminderId: string,
+    scheduledFor: string,
+    nextStatus: 'COMPLETED' | 'SKIPPED',
+  ) => void;
+  markingLogId?: string | null;
 };
 
 function CurrentMedicationModal({
   isOpen,
   onClose,
-  profileId,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  profileId: string;
 }) {
-  const medications = useMemo(() => getMedicationSummaryItems(profileId), [isOpen, profileId]);
+  const { data } = useReminders({ type: 'MEDICATION', isActive: true });
+  const medications = data?.data ?? [];
 
   if (!isOpen) {
     return null;
@@ -126,25 +134,20 @@ function CurrentMedicationModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-text-main">{item.name}</p>
-                      <p className="text-sm text-text-muted">
-                        <span className="font-semibold text-text-main">Dosis:</span> {item.dose}
-                      </p>
-                      <p className="text-sm text-text-muted">
-                        <span className="font-semibold text-text-main">Frecuencia:</span>{' '}
-                        {item.frequencyHours}
-                      </p>
+                      {item.dosageAmount ? (
+                        <p className="text-sm text-text-muted">
+                          <span className="font-semibold text-text-main">Dosis:</span> {item.dosageAmount}
+                        </p>
+                      ) : null}
                     </div>
-
                     <div className="space-y-2">
                       <p className="text-sm text-text-muted">
-                        <span className="font-semibold text-text-main">Doctor:</span> {item.doctor}
+                        <span className="font-semibold text-text-main">Frecuencia:</span>{' '}
+                        {item.frequencyEvery} {item.frequencyUnit.toLowerCase()}
                       </p>
                       <p className="text-sm text-text-muted">
-                        <span className="font-semibold text-text-main">Fecha:</span> {item.date}
-                      </p>
-                      <p className="text-sm text-text-muted">
-                        <span className="font-semibold text-text-main">Observacion:</span>{' '}
-                        {item.relatedEvent || 'Sin cita asociada'}
+                        <span className="font-semibold text-text-main">Estado:</span>{' '}
+                        {item.isActive ? 'Activo' : 'Inactivo'}
                       </p>
                     </div>
                   </div>
@@ -169,6 +172,10 @@ function EventRow({
   type,
   status,
   actionLabel,
+  reminderId,
+  scheduledFor,
+  onMarkLog,
+  markingLogId,
 }: {
   time: string;
   title: string;
@@ -176,8 +183,19 @@ function EventRow({
   type: keyof typeof typeStyles;
   status: keyof typeof statusStyles;
   actionLabel: string;
+  reminderId?: string;
+  scheduledFor?: string;
+  onMarkLog?: (
+    reminderId: string,
+    scheduledFor: string,
+    nextStatus: 'COMPLETED' | 'SKIPPED',
+  ) => void;
+  markingLogId?: string | null;
 }) {
   const typeStyle = typeStyles[type];
+  const canMark =
+    status === 'pendiente' && Boolean(reminderId) && Boolean(scheduledFor) && Boolean(onMarkLog);
+  const isMarking = markingLogId === reminderId;
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_16px_32px_rgba(15,23,42,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)] sm:p-6">
@@ -208,22 +226,46 @@ function EventRow({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
           <span
             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}
           >
             {status}
           </span>
-          <Button variant="secondary" className="min-h-11 px-5">
-            {actionLabel}
-          </Button>
+          {canMark ? (
+            <>
+              <Button
+                variant="ghost"
+                className="min-h-11 px-4"
+                disabled={isMarking}
+                onClick={() =>
+                  onMarkLog!(reminderId!, scheduledFor!, 'SKIPPED')
+                }
+              >
+                {isMarking ? '...' : 'Saltar'}
+              </Button>
+              <Button
+                className="min-h-11 px-4"
+                disabled={isMarking}
+                onClick={() =>
+                  onMarkLog!(reminderId!, scheduledFor!, 'COMPLETED')
+                }
+              >
+                {isMarking ? 'Guardando...' : 'Marcar como hecho'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" className="min-h-11 px-5">
+              {actionLabel}
+            </Button>
+          )}
         </div>
       </div>
     </Card>
   );
 }
 
-function EventList({ activeTab, profileId, remoteEvents }: EventListProps) {
+function EventList({ activeTab, profileId, remoteEvents, onMarkLog, markingLogId }: EventListProps) {
   const events = useMemo(() => {
     if (remoteEvents !== undefined) {
       return [...remoteEvents].sort(
@@ -253,7 +295,12 @@ function EventList({ activeTab, profileId, remoteEvents }: EventListProps) {
             </div>
             <div className="space-y-4">
               {group.items.map((event) => (
-                <EventRow key={event.id} {...event} />
+                <EventRow
+                  key={event.id}
+                  {...event}
+                  onMarkLog={onMarkLog}
+                  markingLogId={markingLogId}
+                />
               ))}
             </div>
           </section>
@@ -278,7 +325,12 @@ function EventList({ activeTab, profileId, remoteEvents }: EventListProps) {
             </div>
             <div className="space-y-4">
               {group.items.map((event) => (
-                <EventRow key={event.id} {...event} />
+                <EventRow
+                  key={event.id}
+                  {...event}
+                  onMarkLog={onMarkLog}
+                  markingLogId={markingLogId}
+                />
               ))}
             </div>
           </section>
@@ -290,7 +342,12 @@ function EventList({ activeTab, profileId, remoteEvents }: EventListProps) {
   return (
     <div className="space-y-4">
       {events.map((event) => (
-        <EventRow key={event.id} {...event} />
+        <EventRow
+          key={event.id}
+          {...event}
+          onMarkLog={onMarkLog}
+          markingLogId={markingLogId}
+        />
       ))}
     </div>
   );
@@ -391,8 +448,8 @@ function DaySummaryCard({ activeTab }: EventListProps) {
   );
 }
 
-function MiniCalendarCard({ profileId }: { profileId: string }) {
-  const days = getMiniCalendarDays(profileId);
+function MiniCalendarCard({ events }: { events?: Array<{ dateOrder: number }> }) {
+  const days = getMiniCalendarDays(events);
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)]">
@@ -488,9 +545,9 @@ function QuickActionsCard() {
   );
 }
 
-function CurrentMedicationCard({ onOpen, profileId }: { onOpen: () => void; profileId: string }) {
-  const medications = useMemo(() => getMedicationSummaryItems(profileId), [profileId]);
-  const previewItems = medications.slice(0, 3);
+function CurrentMedicationCard({ onOpen }: { onOpen: () => void }) {
+  const { data } = useReminders({ type: 'MEDICATION', isActive: true });
+  const previewItems = (data?.data ?? []).slice(0, 3);
 
   return (
     <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
@@ -513,10 +570,7 @@ function CurrentMedicationCard({ onOpen, profileId }: { onOpen: () => void; prof
             >
               <p className="text-sm font-semibold text-text-main">{item.name}</p>
               <p className="mt-1 text-sm text-text-muted">
-                {item.dose} · {item.frequencyHours}
-              </p>
-              <p className="mt-1 text-xs text-text-muted">
-                Indicado por {item.doctor} el {item.date}
+                {item.dosageAmount ? `${item.dosageAmount} · ` : ''}{item.frequencyEvery} {item.frequencyUnit.toLowerCase()}
               </p>
             </div>
           ))
@@ -536,6 +590,18 @@ export function SchedulesPage() {
   const [isMedicationOpen, setIsMedicationOpen] = useState(false);
 
   const { data, isLoading, isError } = useSchedulesOverview({ view: activeTab });
+  const upsertLog = useUpsertReminderLog();
+
+  function handleMarkLog(
+    reminderId: string,
+    scheduledFor: string,
+    nextStatus: 'COMPLETED' | 'SKIPPED',
+  ) {
+    upsertLog.mutate({
+      reminderId,
+      payload: { scheduledFor, status: nextStatus },
+    });
+  }
 
   const remoteEvents = useMemo(() => {
     if (!data?.data?.events) {
@@ -564,7 +630,6 @@ export function SchedulesPage() {
       <CurrentMedicationModal
         isOpen={isMedicationOpen}
         onClose={() => setIsMedicationOpen(false)}
-        profileId={activeProfile.id}
       />
 
       <section className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] sm:p-8">
@@ -618,10 +683,7 @@ export function SchedulesPage() {
             />
           )}
 
-          <CurrentMedicationCard
-            onOpen={() => setIsMedicationOpen(true)}
-            profileId={activeProfile.id}
-          />
+          <CurrentMedicationCard onOpen={() => setIsMedicationOpen(true)} />
 
           <Card className="border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.05)] sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -648,6 +710,10 @@ export function SchedulesPage() {
                   activeTab={activeTab}
                   profileId={activeProfile.id}
                   remoteEvents={remoteEvents}
+                  onMarkLog={handleMarkLog}
+                  markingLogId={
+                    upsertLog.isPending ? upsertLog.variables?.reminderId ?? null : null
+                  }
                 />
               )}
             </div>
@@ -656,7 +722,7 @@ export function SchedulesPage() {
 
         <aside className="space-y-4">
           <DaySummaryCard activeTab={activeTab} profileId={activeProfile.id} />
-          <MiniCalendarCard profileId={activeProfile.id} />
+          <MiniCalendarCard events={remoteEvents} />
           <PreparationCard />
           <QuickActionsCard />
         </aside>

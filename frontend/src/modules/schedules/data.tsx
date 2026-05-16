@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { primaryProfileId } from '@/modules/patient-profiles/data';
 
 export type ScheduleTab = 'today' | 'week' | 'upcoming';
 export type ActivityType = 'medicamento' | 'recordatorio' | 'seguimiento' | 'cuidado';
@@ -17,6 +16,8 @@ export type HealthEvent = {
   type: ActivityType;
   status: ActivityStatus;
   actionLabel: string;
+  reminderId?: string;
+  scheduledFor?: string;
 };
 
 export type PreparationItem = {
@@ -37,177 +38,6 @@ export const tabs: Array<{ id: ScheduleTab; label: string }> = [
   { id: 'upcoming', label: 'Proximas' },
 ];
 
-export const healthEvents: HealthEvent[] = [
-  {
-    id: '1',
-    profileId: primaryProfileId,
-    tab: 'today',
-    dayLabel: 'Hoy',
-    dateOrder: 1,
-    time: '08:00',
-    title: 'Tomar medicacion de la manana',
-    location: 'Rutina en casa',
-    type: 'medicamento',
-    status: 'pendiente',
-    actionLabel: 'Marcar tomado',
-  },
-  {
-    id: '2',
-    profileId: primaryProfileId,
-    tab: 'today',
-    dayLabel: 'Hoy',
-    dateOrder: 1,
-    time: '10:30',
-    title: 'Vaso de agua y pausa activa',
-    location: 'Recordatorio diario',
-    type: 'recordatorio',
-    status: 'pendiente',
-    actionLabel: 'Posponer',
-  },
-  {
-    id: '3',
-    profileId: primaryProfileId,
-    tab: 'today',
-    dayLabel: 'Hoy',
-    dateOrder: 1,
-    time: '16:00',
-    title: 'Control de colacion y descanso',
-    location: 'Rutina personal',
-    type: 'cuidado',
-    status: 'confirmada',
-    actionLabel: 'Ver detalle',
-  },
-  {
-    id: '4',
-    profileId: primaryProfileId,
-    tab: 'today',
-    dayLabel: 'Hoy',
-    dateOrder: 1,
-    time: '21:00',
-    title: 'Preparar pastillero para manana',
-    location: 'Dormitorio',
-    type: 'seguimiento',
-    status: 'pendiente',
-    actionLabel: 'Marcar listo',
-  },
-  {
-    id: '5',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Lunes',
-    dateOrder: 1,
-    time: '08:00',
-    title: 'Tomar medicacion de la manana',
-    location: 'Rutina en casa',
-    type: 'medicamento',
-    status: 'pendiente',
-    actionLabel: 'Marcar tomado',
-  },
-  {
-    id: '6',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Martes',
-    dateOrder: 2,
-    time: '10:30',
-    title: 'Recordatorio de hidratacion',
-    location: 'Rutina diaria',
-    type: 'recordatorio',
-    status: 'pendiente',
-    actionLabel: 'Posponer',
-  },
-  {
-    id: '7',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Miercoles',
-    dateOrder: 3,
-    time: '09:00',
-    title: 'Ayuno previo para examen del jueves',
-    location: 'Preparacion en casa',
-    type: 'recordatorio',
-    status: 'confirmada',
-    actionLabel: 'Leer indicacion',
-  },
-  {
-    id: '8',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Jueves',
-    dateOrder: 4,
-    time: '18:30',
-    title: 'Caminata suave de 20 minutos',
-    location: 'Barrio o caminadora',
-    type: 'cuidado',
-    status: 'confirmada',
-    actionLabel: 'Registrar avance',
-  },
-  {
-    id: '9',
-    profileId: primaryProfileId,
-    tab: 'week',
-    dayLabel: 'Viernes',
-    dateOrder: 5,
-    time: '20:30',
-    title: 'Revisar horarios del fin de semana',
-    location: 'Agenda personal',
-    type: 'seguimiento',
-    status: 'pendiente',
-    actionLabel: 'Actualizar',
-  },
-  {
-    id: '10',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '02 Jul',
-    dateOrder: 10,
-    time: '07:30',
-    title: 'Reiniciar rutina de vitaminas',
-    location: 'Cocina',
-    type: 'medicamento',
-    status: 'confirmada',
-    actionLabel: 'Ver horario',
-  },
-  {
-    id: '11',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '05 Jul',
-    dateOrder: 11,
-    time: '08:30',
-    title: 'Recordatorio de ayuno previo',
-    location: 'Preparacion en casa',
-    type: 'recordatorio',
-    status: 'pendiente',
-    actionLabel: 'Leer indicacion',
-  },
-  {
-    id: '12',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '08 Jul',
-    dateOrder: 12,
-    time: '12:00',
-    title: 'Controlar hidratacion en jornada larga',
-    location: 'Rutina fuera de casa',
-    type: 'cuidado',
-    status: 'completada',
-    actionLabel: 'Revisar',
-  },
-  {
-    id: '13',
-    profileId: primaryProfileId,
-    tab: 'upcoming',
-    dayLabel: '12 Jul',
-    dateOrder: 13,
-    time: '21:00',
-    title: 'Preparar horarios de medicamentos',
-    location: 'Agenda personal',
-    type: 'seguimiento',
-    status: 'pendiente',
-    actionLabel: 'Ver detalle',
-  },
-];
 
 export const typeStyles: Record<
   ActivityType,
@@ -365,15 +195,8 @@ export const quickActions: QuickAction[] = [
   },
 ];
 
-function matchesProfile(itemProfileId: string, activeProfileId?: string) {
-  return !activeProfileId || itemProfileId === activeProfileId;
-}
-
-export function getEventsByTab(activeTab: ScheduleTab, activeProfileId?: string) {
-  return healthEvents
-    .filter((event) => matchesProfile(event.profileId, activeProfileId))
-    .filter((event) => event.tab === activeTab)
-    .sort((a, b) => a.dateOrder - b.dateOrder || a.time.localeCompare(b.time));
+export function getEventsByTab(_activeTab: ScheduleTab, _activeProfileId?: string): HealthEvent[] {
+  return [];
 }
 
 export function getNextEvent(events: HealthEvent[]) {
@@ -415,22 +238,33 @@ export function getGroupedTodayEvents(events: HealthEvent[]) {
     .filter((group) => group.items.length > 0);
 }
 
-export function getMiniCalendarDays(activeProfileId?: string) {
-  return [
-    { id: 'mon', label: 'Lun', dateNumber: 15, isToday: false },
-    { id: 'tue', label: 'Mar', dateNumber: 16, isToday: true },
-    { id: 'wed', label: 'Mie', dateNumber: 17, isToday: false },
-    { id: 'thu', label: 'Jue', dateNumber: 18, isToday: false },
-    { id: 'fri', label: 'Vie', dateNumber: 19, isToday: false },
-    { id: 'sat', label: 'Sab', dateNumber: 20, isToday: false },
-    { id: 'sun', label: 'Dom', dateNumber: 21, isToday: false },
-  ].map((day, index) => {
-    const eventsCount = healthEvents.filter(
-      (event) => matchesProfile(event.profileId, activeProfileId) && event.dateOrder === index + 1,
-    ).length;
+export function getMiniCalendarDays(events?: Array<{ dateOrder: number }>) {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const DAYS = [
+    { id: 'mon', label: 'Lun', offset: 0 },
+    { id: 'tue', label: 'Mar', offset: 1 },
+    { id: 'wed', label: 'Mie', offset: 2 },
+    { id: 'thu', label: 'Jue', offset: 3 },
+    { id: 'fri', label: 'Vie', offset: 4 },
+    { id: 'sat', label: 'Sab', offset: 5 },
+    { id: 'sun', label: 'Dom', offset: 6 },
+  ];
+
+  return DAYS.map((day) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + mondayOffset + day.offset);
+    const dayDiff = mondayOffset + day.offset;
+    const eventsCount = events
+      ? events.filter((e) => e.dateOrder === dayDiff).length
+      : 0;
 
     return {
-      ...day,
+      id: day.id,
+      label: day.label,
+      dateNumber: d.getDate(),
+      isToday: dayDiff === 0,
       eventsCount,
       hasEvents: eventsCount > 0,
     };
