@@ -45,6 +45,15 @@ export function NavigationIcon({ name, className }: NavigationIconProps) {
     );
   }
 
+  if (name === 'reminders') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+        <path d="M6 8a6 6 0 0 1 12 0v5l1.8 2.5H4.2L6 13z" />
+        <path d="M10 19a2 2 0 0 0 4 0" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
       <circle cx="12" cy="12" r="9" />

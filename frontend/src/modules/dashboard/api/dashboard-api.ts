@@ -63,7 +63,7 @@ export async function getDashboardOverview(
 ): Promise<GetDashboardOverviewResponse> {
   const queryParams = buildQueryParams(params ?? {});
 
-  const { data } = await apiClient.get<GetDashboardOverviewResponse>('/api/v1/dashboard/overview', {
+  const { data } = await apiClient.get<GetDashboardOverviewResponse>('/dashboard/overview', {
     params: queryParams,
   });
 

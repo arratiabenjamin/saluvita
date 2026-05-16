@@ -1,0 +1,11 @@
+{
+  "name": "agenda-medica-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

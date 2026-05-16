@@ -15,6 +15,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     '/appointments': 'text-emerald-600 bg-emerald-100',
     '/professionals': 'text-violet-600 bg-violet-100',
     '/schedules': 'text-rose-500 bg-rose-100',
+    '/reminders': 'text-amber-600 bg-amber-100',
   };
 
   return (
