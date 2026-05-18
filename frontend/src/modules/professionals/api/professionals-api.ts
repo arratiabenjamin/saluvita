@@ -19,7 +19,7 @@ type GetProfessionalsParams = {
 export async function getProfessionals(
   params: GetProfessionalsParams = {},
 ): Promise<Professional[]> {
-  const { data } = await apiClient.get<Professional[]>('/api/v1/appointments/professionals', {
+  const { data } = await apiClient.get<Professional[]>('/appointments/professionals', {
     params: params.patientId ? { patientId: params.patientId } : undefined,
   });
 

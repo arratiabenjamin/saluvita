@@ -4,8 +4,8 @@ import {
   Professional,
 } from '@/modules/professionals/api/professionals-api';
 import { useProfessionals } from '@/modules/professionals/hooks/use-professionals';
-import { saveScheduledAppointment } from '@/modules/appointments/data';
-import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
+import { useCreateAppointment } from '@/modules/appointments/hooks/use-appointments';
+import { useAuth } from '@/modules/auth/hooks/use-auth';
 import { routes } from '@/shared/constants/routes';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -51,12 +51,14 @@ function formatIsoToHuman(iso: string | null): string | null {
 function ProfessionalAppointmentForm({
   formValues,
   formError,
+  isSubmitting,
   onChange,
   onCancel,
   onSubmit,
 }: {
   formValues: AppointmentFormState;
   formError: string;
+  isSubmitting: boolean;
   onChange: (field: keyof AppointmentFormState, value: string) => void;
   onCancel: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -175,11 +177,17 @@ function ProfessionalAppointmentForm({
           ) : null}
 
           <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-            <Button type="button" variant="secondary" className="min-h-11 px-5" onClick={onCancel}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-11 px-5"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
               Cancelar
             </Button>
-            <Button type="submit" className="min-h-11 px-5">
-              Guardar cita
+            <Button type="submit" className="min-h-11 px-5" disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando...' : 'Guardar cita'}
             </Button>
           </div>
         </form>
@@ -190,8 +198,12 @@ function ProfessionalAppointmentForm({
 
 export function ProfessionalsPage() {
   const navigate = useNavigate();
-  const { activeProfile } = usePatientProfile();
-  const { data: professionalItems, isLoading, isError } = useProfessionals();
+  const { session } = useAuth();
+  const patientId = session?.user?.patientId ?? null;
+  const { data: professionalItems, isLoading, isError } = useProfessionals(
+    patientId ? { patientId } : undefined,
+  );
+  const createAppointment = useCreateAppointment();
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
   const [formValues, setFormValues] = useState<AppointmentFormState>(emptyFormState);
@@ -236,7 +248,7 @@ export function ProfessionalsPage() {
     setFormValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleCreateAppointment(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateAppointment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!formValues.date || !formValues.time || !formValues.reason.trim()) {
@@ -244,24 +256,38 @@ export function ProfessionalsPage() {
       return;
     }
 
-    saveScheduledAppointment({
-      profileId: activeProfile.id,
-      professional: formValues.professional,
-      specialty: formValues.specialty,
-      center: formValues.center,
-      address: formValues.address,
-      date: formValues.date,
-      time: formValues.time,
-      reason: formValues.reason.trim(),
-      notes: formValues.notes.trim(),
-    });
+    if (!patientId) {
+      setFormError('No encontramos tu perfil de paciente. Vuelve a iniciar sesión.');
+      return;
+    }
 
-    closeCreateAppointment();
-    setSuccessMessage(
-      selectedProfessional
-        ? `Cita con ${selectedProfessional.doctorName} guardada correctamente`
-        : 'Cita guardada correctamente',
-    );
+    // Combine date (YYYY-MM-DD) + time (HH:mm) into a local ISO string
+    const startsAt = new Date(`${formValues.date}T${formValues.time}:00`).toISOString();
+
+    try {
+      await createAppointment.mutateAsync({
+        patientId,
+        startsAt,
+        doctorName: formValues.professional || undefined,
+        specialty: formValues.specialty || undefined,
+        facilityName: formValues.center || undefined,
+        facilityAddress: formValues.address || undefined,
+        reason: formValues.reason.trim() || undefined,
+      });
+
+      closeCreateAppointment();
+      setSuccessMessage(
+        selectedProfessional
+          ? `Cita con ${selectedProfessional.doctorName} guardada correctamente`
+          : 'Cita guardada correctamente',
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'No pudimos guardar la cita. Inténtalo nuevamente.';
+      setFormError(message);
+    }
   }
 
   if (isCreatingAppointment) {
@@ -269,6 +295,7 @@ export function ProfessionalsPage() {
       <ProfessionalAppointmentForm
         formValues={formValues}
         formError={formError}
+        isSubmitting={createAppointment.isPending}
         onChange={handleFormChange}
         onCancel={closeCreateAppointment}
         onSubmit={handleCreateAppointment}

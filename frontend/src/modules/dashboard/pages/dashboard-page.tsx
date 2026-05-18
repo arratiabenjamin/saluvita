@@ -10,6 +10,8 @@ export function DashboardPage() {
   const payload = data?.data;
   const quickSummary = payload?.quickSummary;
   const upcomingAppointments = payload?.upcomingAppointments ?? [];
+  const recentDiagnostics = payload?.recentDiagnostics ?? [];
+  const healthSummary = payload?.healthSummary;
 
   return (
     <div className="space-y-8 lg:space-y-10">
@@ -105,12 +107,12 @@ export function DashboardPage() {
             />
           )}
 
-          <HistoryDiagnosticsSection />
+          <HistoryDiagnosticsSection items={recentDiagnostics} isLoading={isLoading} />
         </div>
 
         <div className="space-y-6">
           <NewAppointmentSection />
-          <HealthSummarySection />
+          <HealthSummarySection summary={healthSummary} />
         </div>
       </section>
     </div>

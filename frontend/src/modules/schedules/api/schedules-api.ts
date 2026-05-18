@@ -68,7 +68,7 @@ export async function getSchedulesOverview(
 ): Promise<GetSchedulesOverviewResponse> {
   const queryParams = buildQueryParams(params ?? {});
 
-  const { data } = await apiClient.get<GetSchedulesOverviewResponse>('/api/v1/schedules/overview', {
+  const { data } = await apiClient.get<GetSchedulesOverviewResponse>('/schedules/overview', {
     params: queryParams,
   });
 
