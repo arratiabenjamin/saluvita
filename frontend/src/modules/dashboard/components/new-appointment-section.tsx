@@ -1,8 +1,53 @@
+import { useState } from 'react';
+import { useCreateAppointment } from '@/modules/appointments/hooks/use-appointments';
+import { useAuth } from '@/modules/auth/hooks/use-auth';
+import { usePatientProfile } from '@/modules/patient-profiles/hooks/use-patient-profile';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
 
 export function NewAppointmentSection() {
+  const { session } = useAuth();
+  const { activeProfile } = usePatientProfile();
+  const { mutateAsync, isPending } = useCreateAppointment();
+
+  const [doctorName, setDoctorName] = useState('');
+  const [facilityName, setFacilityName] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const patientId = session?.user?.patientId ?? activeProfile?.id ?? '';
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (!patientId) {
+      setError('No se pudo identificar el paciente');
+      return;
+    }
+    if (!date || !time) {
+      setError('Completá la fecha y la hora');
+      return;
+    }
+
+    try {
+      await mutateAsync({
+        patientId,
+        startsAt: `${date}T${time}:00`,
+        doctorName: doctorName.trim() || undefined,
+        facilityName: facilityName.trim() || undefined,
+      });
+      setDoctorName('');
+      setFacilityName('');
+      setDate('');
+      setTime('');
+    } catch {
+      setError('Error al agendar la cita. Intentá de nuevo.');
+    }
+  }
+
   return (
     <Card className="border-slate-200 bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] sm:p-7">
       <div className="flex items-start justify-between gap-4">
@@ -27,14 +72,36 @@ export function NewAppointmentSection() {
         </span>
       </div>
 
-      <form className="mt-6 space-y-4">
-        <Input label="Lugar" placeholder="Ej. Clinica Central" />
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <Input
+          label="Medico"
+          placeholder="Ej. Dra. Gonzalez"
+          value={doctorName}
+          onChange={(e) => setDoctorName(e.target.value)}
+        />
+        <Input
+          label="Lugar"
+          placeholder="Ej. Clinica Central"
+          value={facilityName}
+          onChange={(e) => setFacilityName(e.target.value)}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Fecha" type="date" />
-          <Input label="Hora" type="time" />
+          <Input
+            label="Fecha"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+          <Input
+            label="Hora"
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
         </div>
-        <Button fullWidth className="min-h-14 text-base">
-          Reservar nueva cita
+        {error && <p className="text-sm text-rose-600">{error}</p>}
+        <Button type="submit" fullWidth className="min-h-14 text-base" disabled={isPending}>
+          {isPending ? 'Agendando...' : 'Reservar nueva cita'}
         </Button>
       </form>
     </Card>
