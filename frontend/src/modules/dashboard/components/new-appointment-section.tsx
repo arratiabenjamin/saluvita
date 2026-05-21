@@ -12,7 +12,9 @@ export function NewAppointmentSection() {
   const { mutateAsync, isPending } = useCreateAppointment();
 
   const [doctorName, setDoctorName] = useState('');
+  const [specialty, setSpecialty] = useState('');
   const [facilityName, setFacilityName] = useState('');
+  const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +39,14 @@ export function NewAppointmentSection() {
         patientId,
         startsAt: `${date}T${time}:00`,
         doctorName: doctorName.trim() || undefined,
+        specialty: specialty.trim() || undefined,
         facilityName: facilityName.trim() || undefined,
+        reason: reason.trim() || undefined,
       });
       setDoctorName('');
+      setSpecialty('');
       setFacilityName('');
+      setReason('');
       setDate('');
       setTime('');
     } catch {
@@ -74,16 +80,28 @@ export function NewAppointmentSection() {
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <Input
-          label="Medico"
-          placeholder="Ej. Dra. Gonzalez"
+          label="Profesional"
+          placeholder="Ej. Dra. Javiera Molina"
           value={doctorName}
           onChange={(e) => setDoctorName(e.target.value)}
         />
         <Input
-          label="Lugar"
-          placeholder="Ej. Clinica Central"
+          label="Especialidad"
+          placeholder="Ej. Cardiología"
+          value={specialty}
+          onChange={(e) => setSpecialty(e.target.value)}
+        />
+        <Input
+          label="Centro médico"
+          placeholder="Ej. Clínica Central"
           value={facilityName}
           onChange={(e) => setFacilityName(e.target.value)}
+        />
+        <Input
+          label="Motivo de la cita"
+          placeholder="Ej. Control de rutina, revisión de exámenes..."
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Input

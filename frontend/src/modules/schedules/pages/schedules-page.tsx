@@ -353,7 +353,14 @@ function EventList({ activeTab, profileId, remoteEvents, onMarkLog, markingLogId
   );
 }
 
-function NextActivityCard({ activeTab, profileId, remoteEvents, remoteNext }: EventListProps) {
+function NextActivityCard({
+  activeTab,
+  profileId,
+  remoteEvents,
+  remoteNext,
+  onMarkLog,
+  markingLogId,
+}: EventListProps) {
   const nextEvent = useMemo(() => {
     if (remoteEvents !== undefined) {
       if (remoteNext !== undefined) {
@@ -369,6 +376,12 @@ function NextActivityCard({ activeTab, profileId, remoteEvents, remoteNext }: Ev
   }
 
   const typeStyle = typeStyles[nextEvent.type];
+  const canMark =
+    nextEvent.status === 'pendiente' &&
+    Boolean(nextEvent.reminderId) &&
+    Boolean(nextEvent.scheduledFor) &&
+    Boolean(onMarkLog);
+  const isMarking = markingLogId === nextEvent.reminderId;
 
   return (
     <Card className="overflow-hidden border-blue-200 bg-[linear-gradient(135deg,#eff6ff_0%,#ffffff_60%,#f8fbff_100%)] p-0 shadow-[0_22px_48px_rgba(37,99,235,0.14)]">
@@ -414,7 +427,31 @@ function NextActivityCard({ activeTab, profileId, remoteEvents, remoteNext }: Ev
           >
             {nextEvent.status}
           </span>
-          <Button className="min-h-11 w-full px-5">{nextEvent.actionLabel}</Button>
+          {canMark ? (
+            <div className="flex flex-col gap-2">
+              <Button
+                className="min-h-11 w-full px-5"
+                disabled={isMarking}
+                onClick={() =>
+                  onMarkLog!(nextEvent.reminderId!, nextEvent.scheduledFor!, 'COMPLETED')
+                }
+              >
+                {isMarking ? 'Guardando...' : 'Marcar como hecho'}
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11 w-full px-5"
+                disabled={isMarking}
+                onClick={() =>
+                  onMarkLog!(nextEvent.reminderId!, nextEvent.scheduledFor!, 'SKIPPED')
+                }
+              >
+                {isMarking ? '...' : 'Saltar'}
+              </Button>
+            </div>
+          ) : (
+            <Button className="min-h-11 w-full px-5">{nextEvent.actionLabel}</Button>
+          )}
         </div>
       </div>
     </Card>
@@ -680,6 +717,10 @@ export function SchedulesPage() {
               profileId={activeProfile.id}
               remoteEvents={remoteEvents ?? []}
               remoteNext={remoteNext}
+              onMarkLog={handleMarkLog}
+              markingLogId={
+                upsertLog.isPending ? upsertLog.variables?.reminderId ?? null : null
+              }
             />
           )}
 
