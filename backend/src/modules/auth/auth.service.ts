@@ -17,7 +17,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 import type { AuthenticatedUser } from '../../shared/auth/interfaces/authenticated-user.interface';
 import { ROLE_PATIENT } from '../../shared/auth/roles.constants';
-import { EMAIL_SENDER, EmailSender } from '../email/email.types';
+import { EMAIL_SENDER } from '../email/email.types';
+import type { EmailSender } from '../email/email.types';
 
 @Injectable()
 export class AuthService {
