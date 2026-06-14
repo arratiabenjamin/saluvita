@@ -15,7 +15,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
-  const { mutate, isPending, isSuccess } = useForgotPassword();
+  const { mutate, isPending, isSuccess, isError } = useForgotPassword();
 
   const {
     register,
@@ -29,7 +29,9 @@ export function ForgotPasswordForm() {
     mutate(values.email);
   };
 
-  if (isSuccess) {
+  // Anti-enumeration: show the generic success state regardless of the server
+  // response (success OR error) so an observer cannot tell whether the email exists.
+  if (isSuccess || isError) {
     return (
       <Card className="w-full max-w-lg p-6 sm:p-8 md:p-10">
         <div className="text-center">
