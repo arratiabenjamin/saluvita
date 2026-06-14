@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -15,6 +17,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 import type { AuthenticatedUser } from '../../shared/auth/interfaces/authenticated-user.interface';
 import { ROLE_PATIENT } from '../../shared/auth/roles.constants';
+import { EMAIL_SENDER, EmailSender } from '../email/email.types';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +25,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Inject(EMAIL_SENDER) private readonly emailSender: EmailSender,
   ) {}
 
   private accessSecret(): string {
@@ -260,5 +264,74 @@ export class AuthService {
       roles,
       patientId: dbUser.patientProfile?.id ?? null,
     };
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const genericMessage = 'If that email is registered, a reset link is on its way.';
+
+    const user = await this.prisma.user.findFirst({
+      where: { email: normalizedEmail, deletedAt: null, status: 'ACTIVE' },
+    });
+
+    if (!user) {
+      return { message: genericMessage };
+    }
+
+    const rawToken = randomBytes(48).toString('hex');
+    const tokenHash = this.hashToken(rawToken);
+
+    const ttlMinutes = Number(
+      this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') ?? '60',
+    );
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt },
+    });
+
+    const resetUrlBase =
+      this.configService.get<string>('APP_RESET_URL_BASE') ??
+      'http://localhost:5173/reset-password';
+    const resetLink = `${resetUrlBase}?token=${rawToken}`;
+
+    await this.emailSender.sendPasswordResetEmail(user.email, resetLink);
+
+    return { message: genericMessage };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = this.hashToken(token);
+
+    await this.prisma.$transaction(async (tx) => {
+      const tokenRecord = await tx.passwordResetToken.findFirst({
+        where: {
+          tokenHash,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!tokenRecord) {
+        throw new BadRequestException('Invalid, expired, or already used reset token.');
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      await tx.user.update({
+        where: { id: tokenRecord.userId },
+        data: { passwordHash },
+      });
+
+      await tx.passwordResetToken.update({
+        where: { id: tokenRecord.id },
+        data: { usedAt: new Date() },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { userId: tokenRecord.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    });
   }
 }
