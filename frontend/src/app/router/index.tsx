@@ -2,6 +2,8 @@ import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { ProtectedRoute } from '@/app/router/protected-route';
 import { LoginPage } from '@/modules/auth/pages/login-page';
 import { RegisterPage } from '@/modules/auth/pages/register-page';
+import { ForgotPasswordPage } from '@/modules/auth/pages/forgot-password-page';
+import { ResetPasswordPage } from '@/modules/auth/pages/reset-password-page';
 import { AppointmentsPage } from '@/modules/appointments/pages/appointments-page';
 import { DashboardPage } from '@/modules/dashboard/pages/dashboard-page';
 import { PatientsPage } from '@/modules/patients/pages/patients-page';
@@ -23,6 +25,14 @@ const router = createBrowserRouter([
   {
     path: routes.register,
     element: <RegisterPage />,
+  },
+  {
+    path: routes.forgotPassword,
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: routes.resetPassword,
+    element: <ResetPasswordPage />,
   },
   {
     element: <ProtectedRoute />,

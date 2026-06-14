@@ -102,6 +102,15 @@ export function LoginForm() {
         </div>
 
         <p className="text-center text-sm leading-6 text-text-muted">
+          <Link
+            to={routes.forgotPassword}
+            className="font-semibold text-primary-dark hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+
+        <p className="text-center text-sm leading-6 text-text-muted">
           ¿No tenés cuenta aún?{' '}
           <Link to={routes.register} className="font-semibold text-primary-dark hover:underline">
             Registrate gratis
