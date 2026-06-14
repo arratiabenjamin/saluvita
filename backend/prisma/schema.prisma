@@ -93,6 +93,7 @@ model User {
   uploadedMedicalHistoryAttachments MedicalHistoryAttachment[] @relation("medical_history_attachments_uploaded_by")
   refreshTokens                    RefreshToken[]
   userRoles                        UserRole[]
+  passwordResetTokens              PasswordResetToken[]
 
   @@unique([email])
   @@index([status])
@@ -253,6 +254,22 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([tokenHash])
+  @@map("password_reset_tokens")
 }
 
 model Reminder {
