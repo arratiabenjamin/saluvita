@@ -66,7 +66,7 @@ test.describe('Pagination Controls', () => {
     await page.goto(`${FRONTEND}/login`);
     await page.getByLabel(/correo electr/i).fill(PAGINATION_TEST_USER.email);
     await page.getByLabel(/contraseña/i).fill(PAGINATION_TEST_USER.password);
-    await page.getByRole('button', { name: /iniciar sesión/i }).click();
+    await page.getByRole('button', { name: /ingresar a la plataforma/i }).click();
 
     // Wait for redirect to dashboard/home
     await page.waitForURL((url) => !url.toString().includes('/login'), { timeout: 10000 });
@@ -156,7 +156,7 @@ test.describe('Pagination Controls', () => {
     await page.goto(`${FRONTEND}/login`);
     await page.getByLabel(/correo electr/i).fill(PAGINATION_TEST_USER.email);
     await page.getByLabel(/contraseña/i).fill(PAGINATION_TEST_USER.password);
-    await page.getByRole('button', { name: /iniciar sesión/i }).click();
+    await page.getByRole('button', { name: /ingresar a la plataforma/i }).click();
 
     await page.waitForURL((url) => !url.toString().includes('/login'), { timeout: 10000 });
 
@@ -164,13 +164,12 @@ test.describe('Pagination Controls', () => {
     await page.waitForLoadState('networkidle');
 
     // No crash = no error boundary message
-    const errorIndicators = page.locator('text=/algo salió mal/i, text=/error inesperado/i');
+    const errorIndicators = page.getByText(/algo salió mal|error inesperado/i);
     expect(await errorIndicators.count()).toBe(0);
 
-    // Either data or empty state is shown — neither crashes
-    const headingOrEmpty = page.locator(
-      '[data-testid="reminders-list"], text=/sin recordatorios/i, text=/no hay recordatorios/i, h1, h2',
-    );
-    await expect(headingOrEmpty.first()).toBeVisible({ timeout: 8000 });
+    // The reminders page heading renders (data or empty state — neither crashes)
+    await expect(
+      page.getByRole('heading', { name: /recordatorios/i }).first(),
+    ).toBeVisible({ timeout: 8000 });
   });
 });
