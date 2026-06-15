@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/lib/axios';
+import type { PaginatedResponse } from '@/shared/types/api';
 
 export type ReminderType = 'GENERAL' | 'MEDICATION' | 'EXAM';
 export type ReminderFrequencyUnit = 'HOURS' | 'DAYS' | 'WEEKS';
@@ -28,18 +29,6 @@ export type GetRemindersParams = {
   type?: ReminderType;
   isActive?: boolean;
   search?: string;
-};
-
-export type RemindersListMeta = {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
-
-export type GetRemindersResponse = {
-  data: Reminder[];
-  meta: RemindersListMeta;
 };
 
 export type CreateReminderPayload = {
@@ -93,8 +82,8 @@ function buildQueryParams(params: GetRemindersParams): Record<string, string | n
 
 export async function getReminders(
   params: GetRemindersParams = {},
-): Promise<GetRemindersResponse> {
-  const { data } = await apiClient.get<GetRemindersResponse>('/reminders', {
+): Promise<PaginatedResponse<Reminder>> {
+  const { data } = await apiClient.get<PaginatedResponse<Reminder>>('/reminders', {
     params: buildQueryParams(params),
   });
   return data;
