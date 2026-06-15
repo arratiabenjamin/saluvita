@@ -13,6 +13,9 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { CaregivingModule } from './modules/caregiving/caregiving.module';
 import { MedicalHistoryModule } from './modules/medical-history/medical-history.module';
+import { TestSupportModule } from './modules/test-support/test-support.module';
+
+const devOnlyModules = process.env.NODE_ENV !== 'production' ? [TestSupportModule] : [];
 
 @Module({
   imports: [
@@ -30,6 +33,7 @@ import { MedicalHistoryModule } from './modules/medical-history/medical-history.
     RemindersModule,
     SchedulesModule,
     DashboardModule,
+    ...devOnlyModules,
   ],
   controllers: [AppController],
   providers: [AppService],
