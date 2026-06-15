@@ -51,7 +51,7 @@ export function LoginForm() {
           Accede a tu espacio clinico
         </h2>
         <p className="mt-3 text-sm leading-7 text-text-muted sm:text-base">
-          Ingresa con tu correo y contrasena para continuar de forma segura.
+          Ingresa con tu correo y contraseña para continuar de forma segura.
         </p>
       </div>
 
@@ -65,10 +65,10 @@ export function LoginForm() {
           {...register('email')}
         />
         <Input
-          label="Contrasena"
+          label="Contraseña"
           type="password"
           autoComplete="current-password"
-          placeholder="Ingresa tu contrasena"
+          placeholder="Ingresa tu contraseña"
           error={errors.password?.message}
           {...register('password')}
         />
