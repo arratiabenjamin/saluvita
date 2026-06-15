@@ -96,6 +96,10 @@ export function Pagination({
         </svg>
       </button>
 
+      <span aria-live="polite" className="px-2 text-sm text-text-muted">
+        Página {currentPage} de {totalPages}
+      </span>
+
       {pageWindow.map((item, index) => {
         if (item === 'ellipsis') {
           return (
