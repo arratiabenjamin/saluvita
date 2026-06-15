@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcryptjs';
@@ -112,6 +113,33 @@ export class AuthService {
     };
   }
 
+  /**
+   * Resolves the PATIENT role, creating it if it does not yet exist.
+   *
+   * Handles the P2002 race condition that arises when two concurrent registrations
+   * both attempt to insert the role for the first time. The losing request catches
+   * the unique-constraint violation and falls back to a plain lookup, instead of
+   * propagating a 500 error.
+   */
+  private async getOrCreatePatientRole() {
+    try {
+      return await this.prisma.role.upsert({
+        where: { code: ROLE_PATIENT },
+        create: { code: ROLE_PATIENT, name: 'Patient' },
+        update: {},
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        // Lost the race — the role was created by a concurrent request; fetch it.
+        return this.prisma.role.findUniqueOrThrow({ where: { code: ROLE_PATIENT } });
+      }
+      throw err;
+    }
+  }
+
   async registerPatient(dto: RegisterPatientDto, userAgent?: string, ipAddress?: string) {
     const email = dto.email.trim().toLowerCase();
     const documentNumber = dto.documentNumber.trim().toUpperCase();
@@ -131,13 +159,12 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      const patientRole = await tx.role.upsert({
-        where: { code: ROLE_PATIENT },
-        create: { code: ROLE_PATIENT, name: 'Patient' },
-        update: {},
-      });
+    // Resolve the patient role BEFORE the transaction to avoid the P2002 race
+    // condition that occurs when concurrent registrations both attempt to insert
+    // the role for the first time inside their respective transactions.
+    const patientRole = await this.getOrCreatePatientRole();
 
+    const user = await this.prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {
           email,
