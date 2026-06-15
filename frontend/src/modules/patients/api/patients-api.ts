@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/lib/axios';
-import { ApiListResponse } from '@/shared/types/api';
+import { PaginatedResponse } from '@/shared/types/api';
 import {
   CreatePatientPayload,
   Patient,
@@ -7,8 +7,8 @@ import {
 } from '@/shared/types/patient';
 
 export const patientsApi = {
-  async list(filters: PatientFilters): Promise<ApiListResponse<Patient>> {
-    const { data } = await apiClient.get<ApiListResponse<Patient>>('/patients', {
+  async list(filters: PatientFilters): Promise<PaginatedResponse<Patient>> {
+    const { data } = await apiClient.get<PaginatedResponse<Patient>>('/patients', {
       params: filters,
     });
     return data;
