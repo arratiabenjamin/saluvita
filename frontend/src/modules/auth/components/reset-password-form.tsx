@@ -1,25 +1,15 @@
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useResetPassword } from '@/modules/auth/hooks/useResetPassword';
 import { routes } from '@/shared/constants/routes';
-import { passwordPolicySchema } from '@/shared/lib/password-policy';
+import {
+  resetPasswordSchema,
+  ResetPasswordFormValues,
+} from '@/modules/auth/schemas/auth-schemas';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
-
-const resetPasswordSchema = z
-  .object({
-    password: passwordPolicySchema,
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  });
-
-type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export function ResetPasswordForm() {
   const [searchParams] = useSearchParams();

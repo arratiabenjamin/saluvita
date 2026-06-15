@@ -1,20 +1,13 @@
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '@/modules/auth/hooks/use-auth';
 import { routes } from '@/shared/constants/routes';
+import { loginSchema, LoginFormValues } from '@/modules/auth/schemas/auth-schemas';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
-
-const loginSchema = z.object({
-  email: z.string().email('Ingresa un correo valido'),
-  password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const navigate = useNavigate();
