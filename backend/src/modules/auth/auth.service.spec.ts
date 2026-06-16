@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { EmailSender } from '../email/email.types';
 import { ROLE_PATIENT } from '../../shared/auth/roles.constants';
+import { PatientDocumentTypeEnum } from '../patients/domain/enums/patient-document-type.enum';
 
 // ---------- helpers ----------
 
@@ -50,7 +51,7 @@ function makeRegisterDto(overrides: Record<string, unknown> = {}) {
     password: 'SecurePass1!',
     firstName: 'Jane',
     lastName: 'Doe',
-    documentType: 'DNI',
+    documentType: PatientDocumentTypeEnum.DNI,
     documentNumber: '12345678',
     birthDate: '1990-01-01',
     phone: '+1234567890',

@@ -4,7 +4,7 @@ import { AppointmentAccessService } from '../ports/appointment-access.service';
 import { ActorContext } from '../ports/actor-context';
 
 function makeActor(overrides: Partial<ActorContext> = {}): ActorContext {
-    return { userId: 'user-1', role: 'PROFESSIONAL', ...overrides };
+    return { userId: 'user-1', roles: ['PROFESSIONAL'], ...overrides };
 }
 
 function makeCommand() {

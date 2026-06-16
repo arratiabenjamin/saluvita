@@ -11,7 +11,7 @@ import {
 } from '../../domain/errors/appointment-domain.errors';
 
 function makeActor(): ActorContext {
-    return { userId: 'user-1', role: 'PROFESSIONAL' };
+    return { userId: 'user-1', roles: ['PROFESSIONAL'] };
 }
 
 function makePlannedAppointment(id: string): Appointment {

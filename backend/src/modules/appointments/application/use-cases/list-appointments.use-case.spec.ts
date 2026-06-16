@@ -4,7 +4,7 @@ import { AppointmentAccessService } from '../ports/appointment-access.service';
 import { ActorContext } from '../ports/actor-context';
 
 function makeActor(): ActorContext {
-    return { userId: 'user-1', role: 'PROFESSIONAL' };
+    return { userId: 'user-1', roles: ['PROFESSIONAL'] };
 }
 
 function makePaginatedResult() {

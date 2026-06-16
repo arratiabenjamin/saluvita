@@ -40,6 +40,7 @@ describe('UpdatePatientUseCase', () => {
             firstName: 'Jane',
             lastName: 'Doe',
             phone: '+56911111111',
+            updatedByUserId: 'user-1',
         };
 
         const result = await sut.execute(command);
@@ -53,7 +54,7 @@ describe('UpdatePatientUseCase', () => {
         const { sut, repo } = makeSut();
         repo.findById.mockResolvedValueOnce(null);
 
-        await expect(sut.execute({ id: 'nonexistent', firstName: 'Jane', lastName: 'Doe' }))
+        await expect(sut.execute({ id: 'nonexistent', firstName: 'Jane', lastName: 'Doe', updatedByUserId: 'user-1' }))
             .rejects.toThrow(PatientNotFoundError);
         expect(repo.update).not.toHaveBeenCalled();
     });

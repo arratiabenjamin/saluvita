@@ -7,7 +7,7 @@ import { Appointment } from '../../domain/entities/appointment.entity';
 import { AppointmentStatusEnum } from '../../domain/enums/appointment-status.enum';
 
 function makeActor(): ActorContext {
-    return { userId: 'user-1', role: 'PROFESSIONAL' };
+    return { userId: 'user-1', roles: ['PROFESSIONAL'] };
 }
 
 function makeAppointment(id: string): Appointment {

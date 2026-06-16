@@ -9,7 +9,7 @@ import { AppointmentStatusTransitionError } from '../../domain/errors/appointmen
 import { CreateEntriesFromAppointmentUseCase } from '../../../medical-history/application/use-cases/create-entries-from-appointment.use-case';
 
 function makeActor(): ActorContext {
-    return { userId: 'user-1', role: 'PROFESSIONAL' };
+    return { userId: 'user-1', roles: ['PROFESSIONAL'] };
 }
 
 function makePlannedAppointment(id: string): Appointment {
