@@ -1,11 +1,14 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcryptjs';
@@ -15,6 +18,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 import type { AuthenticatedUser } from '../../shared/auth/interfaces/authenticated-user.interface';
 import { ROLE_PATIENT } from '../../shared/auth/roles.constants';
+import { EMAIL_SENDER } from '../email/email.types';
+import type { EmailSender } from '../email/email.types';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +27,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Inject(EMAIL_SENDER) private readonly emailSender: EmailSender,
   ) {}
 
   private accessSecret(): string {
@@ -107,6 +113,33 @@ export class AuthService {
     };
   }
 
+  /**
+   * Resolves the PATIENT role, creating it if it does not yet exist.
+   *
+   * Handles the P2002 race condition that arises when two concurrent registrations
+   * both attempt to insert the role for the first time. The losing request catches
+   * the unique-constraint violation and falls back to a plain lookup, instead of
+   * propagating a 500 error.
+   */
+  private async getOrCreatePatientRole() {
+    try {
+      return await this.prisma.role.upsert({
+        where: { code: ROLE_PATIENT },
+        create: { code: ROLE_PATIENT, name: 'Patient' },
+        update: {},
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        // Lost the race — the role was created by a concurrent request; fetch it.
+        return this.prisma.role.findUniqueOrThrow({ where: { code: ROLE_PATIENT } });
+      }
+      throw err;
+    }
+  }
+
   async registerPatient(dto: RegisterPatientDto, userAgent?: string, ipAddress?: string) {
     const email = dto.email.trim().toLowerCase();
     const documentNumber = dto.documentNumber.trim().toUpperCase();
@@ -126,13 +159,12 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      const patientRole = await tx.role.upsert({
-        where: { code: ROLE_PATIENT },
-        create: { code: ROLE_PATIENT, name: 'Patient' },
-        update: {},
-      });
+    // Resolve the patient role BEFORE the transaction to avoid the P2002 race
+    // condition that occurs when concurrent registrations both attempt to insert
+    // the role for the first time inside their respective transactions.
+    const patientRole = await this.getOrCreatePatientRole();
 
+    const user = await this.prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {
           email,
@@ -260,5 +292,74 @@ export class AuthService {
       roles,
       patientId: dbUser.patientProfile?.id ?? null,
     };
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const genericMessage = 'If that email is registered, a reset link is on its way.';
+
+    const user = await this.prisma.user.findFirst({
+      where: { email: normalizedEmail, deletedAt: null, status: 'ACTIVE' },
+    });
+
+    if (!user) {
+      return { message: genericMessage };
+    }
+
+    const rawToken = randomBytes(48).toString('hex');
+    const tokenHash = this.hashToken(rawToken);
+
+    const ttlMinutes = Number(
+      this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') ?? '60',
+    );
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt },
+    });
+
+    const resetUrlBase =
+      this.configService.get<string>('APP_RESET_URL_BASE') ??
+      'http://localhost:5173/reset-password';
+    const resetLink = `${resetUrlBase}?token=${rawToken}`;
+
+    await this.emailSender.sendPasswordResetEmail(user.email, resetLink);
+
+    return { message: genericMessage };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = this.hashToken(token);
+
+    await this.prisma.$transaction(async (tx) => {
+      const tokenRecord = await tx.passwordResetToken.findFirst({
+        where: {
+          tokenHash,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!tokenRecord) {
+        throw new BadRequestException('Invalid, expired, or already used reset token.');
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      await tx.user.update({
+        where: { id: tokenRecord.userId },
+        data: { passwordHash },
+      });
+
+      await tx.passwordResetToken.update({
+        where: { id: tokenRecord.id },
+        data: { usedAt: new Date() },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { userId: tokenRecord.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    });
   }
 }

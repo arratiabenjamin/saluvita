@@ -13,6 +13,8 @@ import { RegisterPatientDto } from './dto/register-patient.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from '../../shared/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../shared/auth/interfaces/authenticated-user.interface';
@@ -88,6 +90,29 @@ export class AuthController {
   async me(@CurrentUser() user: AuthenticatedUser) {
     return {
       data: await this.authService.me(user),
+    };
+  }
+
+  @ApiOperation({ summary: 'Solicitar enlace de recuperación de contraseña' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiOkResponse({ description: 'Respuesta genérica (anti-enumeración)' })
+  @HttpCode(HttpStatus.OK)
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return {
+      data: await this.authService.forgotPassword(dto.email),
+    };
+  }
+
+  @ApiOperation({ summary: 'Resetear contraseña con token de recuperación' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiOkResponse({ description: 'Contraseña actualizada' })
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.password);
+    return {
+      data: { ok: true },
     };
   }
 }

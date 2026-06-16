@@ -11,6 +11,7 @@ export type Patient = {
 
 export type PatientFilters = {
   search: string;
+  page: number;
 };
 
 export type CreatePatientPayload = {

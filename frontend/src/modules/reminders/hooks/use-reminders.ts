@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   activateReminder,
   createReminder,
@@ -25,11 +25,14 @@ export function useReminders(params: GetRemindersParams = {}) {
   const query = useQuery({
     queryKey: remindersQueryKeys.list(params),
     queryFn: () => getReminders(params),
+    placeholderData: keepPreviousData,
   });
 
   return {
     data: query.data,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isPlaceholderData: query.isPlaceholderData,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,

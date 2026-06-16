@@ -4,9 +4,10 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../../shared/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/auth/guards/roles.guard';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [JwtModule.register({})],
+  imports: [JwtModule.register({}), EmailModule],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard, RolesGuard],
   exports: [AuthService, JwtAuthGuard, RolesGuard, JwtModule],

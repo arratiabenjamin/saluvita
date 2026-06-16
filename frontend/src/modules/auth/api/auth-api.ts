@@ -146,6 +146,14 @@ export const authApi = {
     await apiClient.post('/auth/register', payload);
   },
 
+  async forgotPassword(email: string): Promise<void> {
+    await apiClient.post('/auth/forgot-password', { email });
+  },
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await apiClient.post('/auth/reset-password', { token, password });
+  },
+
   async logout() {
     const refreshToken = getStoredRefreshToken();
 

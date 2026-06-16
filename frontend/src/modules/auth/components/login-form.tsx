@@ -1,20 +1,13 @@
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '@/modules/auth/hooks/use-auth';
 import { routes } from '@/shared/constants/routes';
+import { loginSchema, LoginFormValues } from '@/modules/auth/schemas/auth-schemas';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
-
-const loginSchema = z.object({
-  email: z.string().email('Ingresa un correo valido'),
-  password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const navigate = useNavigate();
@@ -58,7 +51,7 @@ export function LoginForm() {
           Accede a tu espacio clinico
         </h2>
         <p className="mt-3 text-sm leading-7 text-text-muted sm:text-base">
-          Ingresa con tu correo y contrasena para continuar de forma segura.
+          Ingresa con tu correo y contraseña para continuar de forma segura.
         </p>
       </div>
 
@@ -72,10 +65,10 @@ export function LoginForm() {
           {...register('email')}
         />
         <Input
-          label="Contrasena"
+          label="Contraseña"
           type="password"
           autoComplete="current-password"
-          placeholder="Ingresa tu contrasena"
+          placeholder="Ingresa tu contraseña"
           error={errors.password?.message}
           {...register('password')}
         />
@@ -100,6 +93,15 @@ export function LoginForm() {
             <span className="font-semibold text-text-main">123456</span>.
           </p>
         </div>
+
+        <p className="text-center text-sm leading-6 text-text-muted">
+          <Link
+            to={routes.forgotPassword}
+            className="font-semibold text-primary-dark hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
 
         <p className="text-center text-sm leading-6 text-text-muted">
           ¿No tenés cuenta aún?{' '}

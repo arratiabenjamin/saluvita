@@ -1,4 +1,5 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CreateReminderPayload,
   Reminder,
@@ -15,6 +16,7 @@ import {
 import { useAuth } from '@/modules/auth/hooks/use-auth';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { Pagination } from '@/shared/ui/pagination';
 
 const typeLabel: Record<ReminderType, string> = {
   GENERAL: 'General',
@@ -28,23 +30,66 @@ const frequencyUnitLabel: Record<ReminderFrequencyUnit, string> = {
   WEEKS: 'semanas',
 };
 
+type ActiveFilter = 'all' | 'active' | 'inactive';
+
 export function RemindersPage() {
   const { session } = useAuth();
   const patientId = session?.user?.patientId ?? null;
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = Math.max(1, Number(searchParams.get('page')) || 1);
+  const status = (searchParams.get('status') as ActiveFilter | null) ?? 'active';
+  const activeFilter: ActiveFilter = ['all', 'active', 'inactive'].includes(status)
+    ? (status as ActiveFilter)
+    : 'active';
+
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const filterParam: { isActive?: boolean } =
     activeFilter === 'all' ? {} : { isActive: activeFilter === 'active' };
-  const { data, isLoading, isError } = useReminders(
-    patientId ? { patientId, ...filterParam } : filterParam,
+
+  const { data, isFetching, isLoading, isError } = useReminders(
+    patientId ? { patientId, ...filterParam, page } : { ...filterParam, page },
   );
+
+  const totalPages = data?.meta.totalPages ?? 1;
 
   const toggleMut = useToggleReminderActive();
 
   const reminders = data?.data ?? [];
+
+  // Clamp out-of-range page
+  useEffect(() => {
+    if (data?.meta && data.meta.totalPages >= 1 && page > data.meta.totalPages) {
+      setSearchParams(
+        (prev) => {
+          prev.set('page', String(data.meta.totalPages));
+          return prev;
+        },
+        { replace: true },
+      );
+    }
+  }, [page, data?.meta, setSearchParams]);
+
+  function handleFilterChange(value: ActiveFilter) {
+    setSearchParams(
+      (prev) => {
+        prev.set('status', value);
+        prev.set('page', '1');
+        return prev;
+      },
+      { replace: true },
+    );
+  }
+
+  function handlePageChange(newPage: number) {
+    setSearchParams((prev) => {
+      prev.set('page', String(newPage));
+      return prev;
+    });
+  }
 
   return (
     <div className="space-y-8">
@@ -78,7 +123,7 @@ export function RemindersPage() {
             <button
               key={value}
               type="button"
-              onClick={() => setActiveFilter(value)}
+              onClick={() => handleFilterChange(value)}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activeFilter === value
                   ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100'
@@ -129,6 +174,16 @@ export function RemindersPage() {
           ))}
         </section>
       )}
+
+      {!isError ? (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          disabled={isFetching}
+          className="py-2"
+        />
+      ) : null}
 
       {(isCreating || editingReminder) && patientId ? (
         <ReminderFormModal
